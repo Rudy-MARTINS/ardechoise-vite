@@ -1,0 +1,262 @@
+/* app.css */
+
+/* Mobile First - Styles de base */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f5f5f5;
+}
+
+.App {
+  padding: 20px;
+  text-align: center;
+}
+
+.title {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.player-selection {
+  margin-bottom: 20px;
+}
+
+.player-names input {
+  margin: 10px 0;
+  padding: 8px;
+  width: 80%;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.start-game-btn,
+.rules-btn {
+  padding: 10px 20px;
+  margin: 10px 0;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.start-game-btn:hover,
+.rules-btn:hover {
+  background-color: #45a049;
+}
+
+.rules {
+  background-color: #fff;
+  padding: 20px;
+  margin: 10px 0;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rules h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.wow-image {
+  width: 20rem;
+  margin: 20px auto;
+  display: block;
+}
+
+.donne-prend-container {
+  display: flex;
+  justify-content: space-around;
+  margin: 20px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card {
+  width: 100px;
+  height: 150px;
+  background-color: red;
+  margin: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.card.hidden {
+  background-color: red;
+}
+
+.card.revealed {
+  background-color: green;
+}
+
+.cul-sec {
+  text-align: center;
+  margin-top: 20px;
+}
+
+button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 18px;
+}
+
+/* Responsive styles - Adaptation à plus grands écrans */
+@media (min-width: 768px) {
+  .title {
+    font-size: 32px;
+  }
+
+  .player-names input {
+    width: 40%;
+  }
+
+  .rules {
+    width: 50%;
+    margin: 20px auto;
+  }
+
+  .wow-image {
+    width: 200px;
+    margin: 20px auto;
+    display: block;
+  }
+}
+/* app.css */
+
+/* Mobile First - Styles de base */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f5f5f5;
+}
+
+.App {
+  padding: 20px;
+  text-align: center;
+}
+
+.title {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.player-selection {
+  margin-bottom: 20px;
+}
+
+.player-names input {
+  margin: 10px 0;
+  padding: 8px;
+  width: 80%;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.start-game-btn,
+.rules-btn {
+  padding: 10px 20px;
+  margin: 10px 0;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.start-game-btn:hover,
+.rules-btn:hover {
+  background-color: #45a049;
+}
+
+.rules {
+  background-color: #fff;
+  padding: 20px;
+  margin: 10px 0;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rules h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.wow-image {
+  width: 20rem;
+  margin: 20px auto;
+  display: block;
+}
+
+.donne-prend-container {
+  display: flex;
+  justify-content: space-around;
+  margin: 20px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card {
+  width: 100px;
+  height: 150px;
+  background-color: red;
+  margin: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.card.hidden {
+  background-color: red;
+}
+
+.card.revealed {
+  background-color: green;
+}
+
+.cul-sec {
+  text-align: center;
+  margin-top: 20px;
+}
+
+button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 18px;
+}
+
+/* Responsive styles */
+@media (min-width: 768px) {
+  .title {
+    font-size: 32px;
+  }
+
+  .player-names input {
+    width: 40%;
+  }
+
+  .rules {
+    width: 50%;
+    margin: 20px auto;
+  }
+}

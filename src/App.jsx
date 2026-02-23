@@ -1,28 +1,36 @@
 import React, { useState, useEffect } from "react";
 import "./app.css";
 import WowGuy from "./assets/images/WowGuy.webp";
+import Card from "./components/Card/Card";
 import DonnePrendPhase from "./components/DonnePrendPhase/DonnePrendPhase";
 
 function App() {
   const [numPlayers, setNumPlayers] = useState(2);
   const [playerNames, setPlayerNames] = useState(Array(numPlayers).fill(""));
   const [startGame, setStartGame] = useState(false);
+
   const [currentPlayer, setCurrentPlayer] = useState(0);
   const [roundNumber, setRoundNumber] = useState(1);
+
   const [message, setMessage] = useState("");
   const [currentCard, setCurrentCard] = useState(null);
+  const [cardRevealed, setCardRevealed] = useState(false);
+
   const [playerCards, setPlayerCards] = useState(Array(numPlayers).fill([]));
+
   const [gorgeesDistribuees, setGorgeesDistribuees] = useState(
     Array(numPlayers).fill(0),
   );
   const [gorgeesRecues, setGorgeesRecues] = useState(Array(numPlayers).fill(0));
+
   const [showDistribution, setShowDistribution] = useState(false);
-  const [cardRevealed, setCardRevealed] = useState(false);
   const [gorgeesToDistribute, setGorgeesToDistribute] = useState(0);
   const [splitGorgees, setSplitGorgees] = useState([]);
-  const [showRecap, setShowRecap] = useState(false);
+
   const [waitingForConfirmation, setWaitingForConfirmation] = useState(false);
   const [showIntermediatePage, setShowIntermediatePage] = useState(false);
+  const [showRecap, setShowRecap] = useState(false);
+
   const [showDonnePrendPhase, setShowDonnePrendPhase] = useState(false);
   const [deck, setDeck] = useState([]);
 
@@ -74,11 +82,12 @@ function App() {
   };
 
   const shuffle = (array) => {
-    for (let i = array.length - 1; i > 0; i--) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    return array;
+    return arr;
   };
 
   const drawCard = () => {
@@ -90,7 +99,7 @@ function App() {
   };
 
   const handleNumPlayersChange = (e) => {
-    const value = parseInt(e.target.value);
+    const value = parseInt(e.target.value, 10);
     setNumPlayers(value);
     setPlayerNames(Array(value).fill(""));
     setPlayerCards(Array(value).fill([]));
@@ -105,17 +114,18 @@ function App() {
   };
 
   const handleStartGame = () => {
-    if (playerNames.every((name) => name.trim() !== "")) {
-      setStartGame(true);
-      setMessage(
-        `${playerNames[currentPlayer]} commence le tour 1 : Rouge ou Noir.`,
-      );
-      const card = drawCard();
-      setCurrentCard(card);
-      setCardRevealed(false);
-    } else {
+    if (!playerNames.every((name) => name.trim() !== "")) {
       alert("Veuillez remplir tous les noms des joueurs.");
+      return;
     }
+
+    setStartGame(true);
+    setMessage(
+      `${playerNames[currentPlayer]} commence le tour 1 : Rouge ou Noir.`,
+    );
+    const card = drawCard();
+    setCurrentCard(card);
+    setCardRevealed(false);
   };
 
   const handlePlayerGuess = (guess) => {
@@ -141,94 +151,103 @@ function App() {
 
   const handleColorGuess = (guess) => {
     const isRed = currentCard.suit === "cœur" || currentCard.suit === "carreau";
+
     if ((guess === "rouge" && isRed) || (guess === "noir" && !isRed)) {
       setMessage(
         `${playerNames[currentPlayer]} a deviné correctement et peut distribuer ${roundNumber} gorgée(s).`,
       );
       setGorgeesToDistribute(roundNumber);
-      setSplitGorgees([]); // reset distribution en cours
+      setSplitGorgees([]);
       setShowDistribution(true);
-    } else {
-      setMessage(
-        `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundNumber} gorgée(s) !`,
-      );
-      const newGorgeesRecues = [...gorgeesRecues];
-      newGorgeesRecues[currentPlayer] += roundNumber;
-      setGorgeesRecues(newGorgeesRecues);
-      setWaitingForConfirmation(true);
+      return;
     }
+
+    setMessage(
+      `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundNumber} gorgée(s) !`,
+    );
+    const next = [...gorgeesRecues];
+    next[currentPlayer] += roundNumber;
+    setGorgeesRecues(next);
+    setWaitingForConfirmation(true);
   };
 
   const handleComparisonGuess = (guess) => {
     const previousCard = playerCards[currentPlayer][0];
     const comparison = currentCard.value - previousCard.value;
 
-    if (
+    const ok =
       (guess === "supérieure" && comparison > 0) ||
       (guess === "inférieure" && comparison < 0) ||
-      (guess === "égale" && comparison === 0)
-    ) {
+      (guess === "égale" && comparison === 0);
+
+    if (ok) {
       setMessage(
         `${playerNames[currentPlayer]} a deviné correctement et peut distribuer ${roundNumber} gorgée(s).`,
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
       setShowDistribution(true);
-    } else {
-      setMessage(
-        `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundNumber} gorgée(s) !`,
-      );
-      const newGorgeesRecues = [...gorgeesRecues];
-      newGorgeesRecues[currentPlayer] += roundNumber;
-      setGorgeesRecues(newGorgeesRecues);
-      setWaitingForConfirmation(true);
+      return;
     }
+
+    setMessage(
+      `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundNumber} gorgée(s) !`,
+    );
+    const next = [...gorgeesRecues];
+    next[currentPlayer] += roundNumber;
+    setGorgeesRecues(next);
+    setWaitingForConfirmation(true);
   };
 
   const handleInsideOutsideGuess = (guess) => {
     const cards = playerCards[currentPlayer];
     const isInside =
-      currentCard.value > Math.min(...cards.map((card) => card.value)) &&
-      currentCard.value < Math.max(...cards.map((card) => card.value));
+      currentCard.value > Math.min(...cards.map((c) => c.value)) &&
+      currentCard.value < Math.max(...cards.map((c) => c.value));
 
-    if (
+    const ok =
       (guess === "intérieur" && isInside) ||
-      (guess === "extérieur" && !isInside)
-    ) {
+      (guess === "extérieur" && !isInside);
+
+    if (ok) {
       setMessage(
         `${playerNames[currentPlayer]} a deviné correctement et peut distribuer ${roundNumber} gorgée(s).`,
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
       setShowDistribution(true);
-    } else {
-      setMessage(
-        `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundNumber} gorgée(s) !`,
-      );
-      const newGorgeesRecues = [...gorgeesRecues];
-      newGorgeesRecues[currentPlayer] += roundNumber;
-      setGorgeesRecues(newGorgeesRecues);
-      setWaitingForConfirmation(true);
+      return;
     }
+
+    setMessage(
+      `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundNumber} gorgée(s) !`,
+    );
+    const next = [...gorgeesRecues];
+    next[currentPlayer] += roundNumber;
+    setGorgeesRecues(next);
+    setWaitingForConfirmation(true);
   };
 
   const handleSuitGuess = (guess) => {
-    if (guess === currentCard.suit) {
+    const ok = guess === currentCard.suit;
+
+    if (ok) {
       setMessage(
         `${playerNames[currentPlayer]} a deviné correctement et peut distribuer ${roundNumber} gorgée(s).`,
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
       setShowDistribution(true);
-    } else {
-      setMessage(
-        `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundNumber} gorgée(s) !`,
-      );
-      const newGorgeesRecues = [...gorgeesRecues];
-      newGorgeesRecues[currentPlayer] += roundNumber;
-      setGorgeesRecues(newGorgeesRecues);
-      setWaitingForConfirmation(true);
+      return;
     }
+
+    setMessage(
+      `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundNumber} gorgée(s) !`,
+    );
+    const next = [...gorgeesRecues];
+    next[currentPlayer] += roundNumber;
+    setGorgeesRecues(next);
+    setWaitingForConfirmation(true);
   };
 
   const handleNextTurn = () => {
@@ -237,8 +256,8 @@ function App() {
   };
 
   const distributeGorgees = (toPlayer, amount) => {
-    const newSplitGorgees = [...splitGorgees, { toPlayer, amount }];
-    const totalDistributed = newSplitGorgees.reduce(
+    const newSplit = [...splitGorgees, { toPlayer, amount }];
+    const totalDistributed = newSplit.reduce(
       (total, entry) => total + entry.amount,
       0,
     );
@@ -251,21 +270,21 @@ function App() {
     }
 
     if (totalDistributed === gorgeesToDistribute) {
-      const newGorgeesDistribuees = [...gorgeesDistribuees];
-      const newGorgeesRecues = [...gorgeesRecues];
+      const newDistrib = [...gorgeesDistribuees];
+      const newRecues = [...gorgeesRecues];
 
-      newSplitGorgees.forEach(({ toPlayer, amount }) => {
-        newGorgeesDistribuees[currentPlayer] += amount;
-        newGorgeesRecues[toPlayer] += amount;
+      newSplit.forEach(({ toPlayer, amount }) => {
+        newDistrib[currentPlayer] += amount;
+        newRecues[toPlayer] += amount;
       });
 
-      setGorgeesDistribuees(newGorgeesDistribuees);
-      setGorgeesRecues(newGorgeesRecues);
+      setGorgeesDistribuees(newDistrib);
+      setGorgeesRecues(newRecues);
       setShowDistribution(false);
       setSplitGorgees([]);
       nextTurn();
     } else {
-      setSplitGorgees(newSplitGorgees);
+      setSplitGorgees(newSplit);
     }
   };
 
@@ -273,7 +292,10 @@ function App() {
     const nextPlayer = (currentPlayer + 1) % numPlayers;
 
     const newPlayerCards = [...playerCards];
-    newPlayerCards[currentPlayer] = [...newPlayerCards[currentPlayer], currentCard];
+    newPlayerCards[currentPlayer] = [
+      ...newPlayerCards[currentPlayer],
+      currentCard,
+    ];
     setPlayerCards(newPlayerCards);
 
     if (nextPlayer === 0) {
@@ -288,10 +310,12 @@ function App() {
     setCurrentCard(newCard);
     setCardRevealed(false);
     setCurrentPlayer(nextPlayer);
-    setMessage(`${playerNames[nextPlayer]}, à toi de jouer pour le tour ${roundNumber}.`);
+    setMessage(
+      `${playerNames[nextPlayer]}, à toi de jouer pour le tour ${roundNumber}.`,
+    );
   };
 
-  // ✅ Fonction universelle pour Donne/Prend
+  // ✅ Donne/Prend utilise ça
   const applyGorgees = ({ type, fromPlayer, toPlayer, amount }) => {
     if (amount <= 0) return;
 
@@ -318,7 +342,7 @@ function App() {
     }
   };
 
-  // ✅ Compteur dynamique "restant" pour la distribution phase 1
+  // ✅ Compteur dynamique (phase 1)
   const distributedSoFar = splitGorgees.reduce(
     (total, entry) => total + entry.amount,
     0,
@@ -344,13 +368,8 @@ function App() {
     ));
   };
 
-  const handleContinueToRecap = () => {
-    setShowRecap(true);
-  };
-
-  const handleStartDonnePrendPhase = () => {
-    setShowDonnePrendPhase(true);
-  };
+  const handleContinueToRecap = () => setShowRecap(true);
+  const handleStartDonnePrendPhase = () => setShowDonnePrendPhase(true);
 
   return (
     <div className="App">
@@ -363,7 +382,14 @@ function App() {
               setDeck={setDeck}
               playerCards={playerCards}
               updateGorgees={applyGorgees}
-              endDonnePrendPhase={handleNextTurn}
+              onFinish={(action) => {
+                if (action === "RESTART") {
+                  window.location.reload(); // simple & efficace (tu pourras faire plus propre après)
+                }
+                if (action === "HOME") {
+                  window.location.reload();
+                }
+              }}
             />
           ) : showRecap ? (
             <div>
@@ -389,10 +415,15 @@ function App() {
               <h2>{message}</h2>
 
               {cardRevealed && currentCard && (
-                <p>
-                  Carte révélée : {getCardValue(currentCard.value)} de{" "}
-                  {getSymbolForSuit(currentCard.suit)}
-                </p>
+                <>
+                  <div className="card-slot">
+                    <Card card={currentCard} />
+                  </div>
+                  <p className="card-caption">
+                    {getCardValue(currentCard.value)} de{" "}
+                    {getSymbolForSuit(currentCard.suit)}
+                  </p>
+                </>
               )}
 
               {playerCards[currentPlayer].length > 0 && (
@@ -400,7 +431,8 @@ function App() {
                   <h3>Cartes tirées par {playerNames[currentPlayer]}</h3>
                   {playerCards[currentPlayer].map((card, index) => (
                     <p key={index}>
-                      {getCardValue(card.value)} de {getSymbolForSuit(card.suit)}
+                      {getCardValue(card.value)} de{" "}
+                      {getSymbolForSuit(card.suit)}
                     </p>
                   ))}
                 </div>
@@ -409,8 +441,12 @@ function App() {
               {roundNumber === 1 && !showDistribution && !cardRevealed && (
                 <div>
                   <h3>Devinez si la carte est rouge ou noire</h3>
-                  <button onClick={() => handlePlayerGuess("rouge")}>Rouge</button>
-                  <button onClick={() => handlePlayerGuess("noir")}>Noir</button>
+                  <button onClick={() => handlePlayerGuess("rouge")}>
+                    Rouge
+                  </button>
+                  <button onClick={() => handlePlayerGuess("noir")}>
+                    Noir
+                  </button>
                 </div>
               )}
 
@@ -426,7 +462,9 @@ function App() {
                   <button onClick={() => handlePlayerGuess("inférieure")}>
                     Inférieure
                   </button>
-                  <button onClick={() => handlePlayerGuess("égale")}>Égale</button>
+                  <button onClick={() => handlePlayerGuess("égale")}>
+                    Égale
+                  </button>
                 </div>
               )}
 
@@ -448,11 +486,15 @@ function App() {
               {roundNumber === 4 && !showDistribution && !cardRevealed && (
                 <div>
                   <h3>Devinez la forme de la carte</h3>
-                  <button onClick={() => handlePlayerGuess("cœur")}>Cœur</button>
+                  <button onClick={() => handlePlayerGuess("cœur")}>
+                    Cœur
+                  </button>
                   <button onClick={() => handlePlayerGuess("carreau")}>
                     Carreau
                   </button>
-                  <button onClick={() => handlePlayerGuess("pique")}>Pique</button>
+                  <button onClick={() => handlePlayerGuess("pique")}>
+                    Pique
+                  </button>
                   <button onClick={() => handlePlayerGuess("trèfle")}>
                     Trèfle
                   </button>
@@ -462,8 +504,8 @@ function App() {
               {showDistribution && (
                 <div>
                   <h3>
-                    Distribuez vos gorgées ({remainingToDistribute} restante(s) sur{" "}
-                    {gorgeesToDistribute})
+                    Distribuez vos gorgées ({remainingToDistribute} restante(s)
+                    sur {gorgeesToDistribute})
                   </h3>
 
                   {playerNames.map(
@@ -483,7 +525,9 @@ function App() {
 
               {waitingForConfirmation && (
                 <div>
-                  <button onClick={handleNextTurn}>J'ai bu, tour suivant</button>
+                  <button onClick={handleNextTurn}>
+                    J'ai bu, tour suivant
+                  </button>
                 </div>
               )}
             </div>
@@ -492,8 +536,11 @@ function App() {
       ) : (
         <div className="player-setup">
           <h1 className="title">L'Ardechoise</h1>
-          <h2 className="citation">Pour les gens qu'on pas peur de boire... de l'eau</h2>
-          <h4 className="jcvd">" Dans 20 - 30 ans y en aura plus " - JCVD </h4>
+          <h2 className="citation">
+            Pour les gens qu'on pas peur de boire... de l'eau
+          </h2>
+          <h4 className="jcvd">" Dans 20 - 30 ans y en aura plus " - JCVD</h4>
+
           <img src={WowGuy} alt="WOW Guy" className="wow-image" />
 
           <div className="player-selection">

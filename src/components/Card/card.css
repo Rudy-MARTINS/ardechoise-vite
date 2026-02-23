@@ -1,16 +1,54 @@
-.card {
-    border: 1px solid #ddd;
-    padding: 10px;
-    margin: 10px auto;
-    width: 150px;
-    text-align: center;
-    font-size: 18px;
-    border-radius: 5px;
-    background-color: #f9f9f9;
-  }
-  
-  .card p {
-    margin: 0;
-    color: #333;
-  }
-  
+.playing-card {
+  width: 160px;
+  height: 240px;
+  background: #fff;
+  border-radius: 16px;
+  border: 2px solid #222;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  user-select: none;
+}
+
+.playing-card.red {
+  color: #d11;
+}
+
+.playing-card.black {
+  color: #111;
+}
+
+.pc-corner {
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pc-top {
+  align-self: flex-start;
+}
+
+.pc-bottom {
+  align-self: flex-end;
+  transform: rotate(180deg);
+}
+
+.pc-center {
+  font-size: 64px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1;
+}
+.card-slot {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+.card-caption {
+  text-align: center;
+  opacity: 0.8;
+  margin-top: 8px;
+}

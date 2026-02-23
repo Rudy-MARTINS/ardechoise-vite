@@ -21,6 +21,13 @@ body {
   margin-bottom: 20px;
 }
 
+.card-slot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 16px 0;
+}
+
 .player-names input {
   margin: 10px 0;
   padding: 8px;

@@ -1,75 +1,47 @@
 import React, { useState } from "react";
-
-// Symbole de couleur
-const getSymbolForSuit = (suit) => {
-  switch (suit) {
-    case "pique":
-      return "♠";
-    case "trèfle":
-      return "♣";
-    case "cœur":
-      return "♥";
-    case "carreau":
-      return "♦";
-    default:
-      return suit;
-  }
-};
-
-// Valeur carte
-const getCardValue = (value) => {
-  switch (value) {
-    case 11:
-      return "Valet";
-    case 12:
-      return "Dame";
-    case 13:
-      return "Roi";
-    case 14:
-      return "As";
-    default:
-      return value;
-  }
-};
+import Card from "../Card/Card";
+import "./DonnePrendPhase.css";
 
 const DonnePrendPhase = ({
   players,
   remainingDeck,
   setDeck,
   playerCards,
-  updateGorgees, // attendu: applyGorgees({type, fromPlayer, toPlayer, amount})
-  endDonnePrendPhase,
+  updateGorgees, // applyGorgees({type, fromPlayer, toPlayer, amount})
+  onFinish,
 }) => {
-  const [currentRound, setCurrentRound] = useState(1); // 1..4 (plus tard cul sec)
+  const [currentRound, setCurrentRound] = useState(1); // 1..4
   const [phaseDonne, setPhaseDonne] = useState(true); // Donne / Prends
+  const [mode, setMode] = useState("NORMAL"); // "NORMAL" | "CULSEC" | "END"
+
   const [currentCard, setCurrentCard] = useState(null);
   const [cardRevealed, setCardRevealed] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Tableau d'objets { playerIndex, copies }
-  const [playersWithCard, setPlayersWithCard] = useState([]);
+  const [playersWithCard, setPlayersWithCard] = useState([]); // [{playerIndex, copies}]
   const [currentGiverIndex, setCurrentGiverIndex] = useState(0);
 
   const [hardcoreMode, setHardcoreMode] = useState(false);
-
-  // Distribution clic par clic
-  const [pendingSplit, setPendingSplit] = useState({}); // { playerIndex: count }
+  const [pendingSplit, setPendingSplit] = useState({});
   const [showCoucou, setShowCoucou] = useState(false);
 
-  // Verrou: 1 seule carte tirée par étape (sauf hardcore)
   const [hasDrawnThisStep, setHasDrawnThisStep] = useState(false);
 
-  // Helpers distribution
-  const currentGiver = playersWithCard[currentGiverIndex]; // { playerIndex, copies } | undefined
+  // ✅ anti double "phase suivante" (sinon ça saute/continue après étape 4)
+  const [transitionLock, setTransitionLock] = useState(false);
+
+  const currentGiver = playersWithCard[currentGiverIndex];
   const giverIndex = currentGiver?.playerIndex;
   const giverCopies = currentGiver?.copies || 0;
 
-  const totalToGive = phaseDonne ? currentRound * giverCopies : 0;
+  const totalToGive =
+    mode === "NORMAL" && phaseDonne ? currentRound * giverCopies : 0;
 
-  const distributedSoFar = Object.values(pendingSplit).reduce((a, b) => a + b, 0);
+  const distributedSoFar = Object.values(pendingSplit).reduce(
+    (a, b) => a + b,
+    0,
+  );
   const remainingToGive = totalToGive - distributedSoFar;
-
-  const resetPendingSplit = () => setPendingSplit({});
 
   const addToPendingSplit = (toPlayer) => {
     setPendingSplit((prev) => ({
@@ -78,13 +50,33 @@ const DonnePrendPhase = ({
     }));
   };
 
-  // Tirer une carte
+  const computeHolders = (card) => {
+    return players
+      .map((_, index) => {
+        const copies = (playerCards[index] || []).filter(
+          (c) => c?.value === card?.value,
+        ).length;
+        return { playerIndex: index, copies };
+      })
+      .filter((x) => x.copies > 0);
+  };
+
+  const resetForNextStep = () => {
+    setPendingSplit({});
+    setCardRevealed(false);
+    setHasDrawnThisStep(false);
+    setPlayersWithCard([]);
+    setHardcoreMode(false);
+    setCurrentGiverIndex(0);
+    setMessage("");
+    setCurrentCard(null);
+  };
+
   const drawCard = (isHardcore = false) => {
-    // Bloque les re-tirages involontaires
     if (hasDrawnThisStep && !isHardcore) return;
 
     if (!remainingDeck || remainingDeck.length === 0) {
-      setMessage("Le deck est vide : fin de la phase Donne/Prend.");
+      setMessage("Le deck est vide : fin de la phase.");
       return;
     }
 
@@ -93,23 +85,21 @@ const DonnePrendPhase = ({
 
     do {
       card = newDeck.pop();
-    } while (isHardcore && card?.value === currentCard?.value && newDeck.length > 0);
+    } while (
+      isHardcore &&
+      card?.value === currentCard?.value &&
+      newDeck.length > 0
+    );
 
     setCurrentCard(card);
     setDeck(newDeck);
     setCardRevealed(true);
     setHasDrawnThisStep(true);
 
-    resetPendingSplit();
+    setPendingSplit({});
     setMessage("");
 
-    // Qui a la valeur + combien de doublons
-    const holders = players
-      .map((_, index) => {
-        const copies = (playerCards[index] || []).filter((c) => c?.value === card?.value).length;
-        return { playerIndex: index, copies };
-      })
-      .filter((x) => x.copies > 0);
+    const holders = computeHolders(card);
 
     if (holders.length === 0) {
       setMessage("Personne n'a cette valeur. Mode HARDCORE : re-tirez !");
@@ -120,34 +110,53 @@ const DonnePrendPhase = ({
       setHardcoreMode(false);
       setPlayersWithCard(holders);
       setCurrentGiverIndex(0);
-      setMessage("");
     }
   };
 
-  // Passage phase suivante
+  // ✅ passage phase suivante : DONNE -> PRENDS -> (round++) -> CULSEC -> END
   const handleNextPhase = () => {
-    resetPendingSplit();
-    setCardRevealed(false);
-    setHasDrawnThisStep(false);
-    setPlayersWithCard([]);
-    setHardcoreMode(false);
-    setCurrentGiverIndex(0);
-    setMessage("");
+    if (transitionLock) return;
+    setTransitionLock(true);
 
-    // Si on termine "Prends", on avance le round
-    if (!phaseDonne) {
-      const next = currentRound + 1;
-      setCurrentRound(next);
+    // reset UI step
+    resetForNextStep();
 
-      // TODO plus tard : cul sec / fin
-      // if (next > 4) endDonnePrendPhase?.();
+    // Si on était en CULSEC : fin directe
+    if (mode === "CULSEC") {
+      setShowCoucou(true);
+      setTimeout(() => setShowCoucou(false), 1200);
+      setMode("END");
+
+      // unlock
+      setTimeout(() => setTransitionLock(false), 0);
+      return;
     }
 
-    setPhaseDonne((prev) => !prev);
+    // NORMAL
+    if (phaseDonne) {
+      // DONNE -> PRENDS (même round)
+      setPhaseDonne(false);
+      setTimeout(() => setTransitionLock(false), 0);
+      return;
+    }
+
+    // PRENDS terminé -> round suivant OU CULSEC
+    if (currentRound === 4) {
+      // ✅ après PRENDS étape 4 => CULSEC (avec tirage de carte)
+      setMode("CULSEC");
+      setPhaseDonne(true);
+      setTimeout(() => setTransitionLock(false), 0);
+      return;
+    }
+
+    setCurrentRound((prev) => prev + 1);
+    setPhaseDonne(true);
+    setTimeout(() => setTransitionLock(false), 0);
   };
 
   // DONNE : 1 clic = 1 gorgée
   const handleDistributeOne = (toPlayer) => {
+    if (mode !== "NORMAL") return;
     if (!phaseDonne) return;
     if (giverIndex === undefined) return;
     if (remainingToGive <= 0) return;
@@ -167,18 +176,17 @@ const DonnePrendPhase = ({
       `${players[giverIndex]} donne 1 gorgée à ${players[toPlayer]} — reste ${newRemaining}`,
     );
 
-    // Fin cagnotte du giver
     if (newRemaining <= 0) {
-      resetPendingSplit();
+      setPendingSplit({});
 
       if (currentGiverIndex < playersWithCard.length - 1) {
         setCurrentGiverIndex((i) => i + 1);
-        setMessage("✅ Au joueur suivant !");
+        setMessage("✅ Joueur suivant !");
       } else {
         setMessage("✅ Distribution terminée.");
 
-        // Coucou test fin DONNE 2
-        if (currentRound === 2 && phaseDonne) {
+        // petit test coucou fin DONNE étape 2
+        if (currentRound === 2) {
           setShowCoucou(true);
           setTimeout(() => setShowCoucou(false), 1200);
         }
@@ -205,25 +213,49 @@ const DonnePrendPhase = ({
     }
   };
 
-  const phaseTitle = phaseDonne
-    ? `DONNE — étape ${currentRound}`
-    : `PRENDS — étape ${currentRound}`;
+  // CUL SEC : tu voulais tirer une carte aussi (déjà fait), si match => cul sec, sinon hardcore
+  const handleCulSec = (playerIndex) => {
+    updateGorgees({
+      type: "DRINK",
+      toPlayer: playerIndex,
+      amount: 10, // valeur arbitraire interne (cul sec)
+    });
 
-  const cardText =
-    currentCard ? `${getCardValue(currentCard.value)} ${getSymbolForSuit(currentCard.suit)}` : "";
+    setMessage(`${players[playerIndex]} : CUL SEC 🥴`);
+
+    if (currentGiverIndex < playersWithCard.length - 1) {
+      setCurrentGiverIndex((i) => i + 1);
+    } else {
+      setTimeout(() => handleNextPhase(), 900);
+    }
+  };
+
+  const phaseTitle = (() => {
+    if (mode === "CULSEC") return "CUL SEC 🔥 (tirer une carte)";
+    if (mode === "END") return "FIN DE BEUVERIE ✅";
+    return phaseDonne
+      ? `DONNE — étape ${currentRound}`
+      : `PRENDS — étape ${currentRound}`;
+  })();
 
   return (
     <div className="donne-prend-phase">
       <h1>Donne / Prend</h1>
-
       <h2>{phaseTitle}</h2>
 
       {showCoucou && <div className="message">coucou ✅</div>}
+      {message && <div className="message">{message}</div>}
 
-      {!cardRevealed ? (
+      {mode === "END" ? (
+        <div className="panel actions">
+          <div className="message">Fin de beuverie. Repos du foie.</div>
+          <button onClick={() => onFinish?.("RESTART")}>🔁 Recommencer</button>
+          <button onClick={() => onFinish?.("HOME")}>🏠 Retour accueil</button>
+        </div>
+      ) : !cardRevealed ? (
         <div className="panel">
           <div className="message">
-            1 carte par étape. On tire, puis on résout (donne/prends), puis on continue.
+            1 carte par étape. Hardcore si personne n&apos;a la valeur.
           </div>
 
           <button onClick={() => drawCard()} disabled={hasDrawnThisStep}>
@@ -232,12 +264,30 @@ const DonnePrendPhase = ({
         </div>
       ) : (
         <div className="panel">
-          <div className="card">{cardText}</div>
-
-          {message && <div className="message">{message}</div>}
+          {/* ✅ Plus de texte à côté de la carte : la Card suffit */}
+          {currentCard && (
+            <div className="card-slot">
+              <Card card={currentCard} />
+            </div>
+          )}
 
           {playersWithCard.length > 0 ? (
-            phaseDonne ? (
+            mode === "CULSEC" ? (
+              <div>
+                {currentGiver && (
+                  <>
+                    <div className="active-player">
+                      🥃 Candidat : {players[giverIndex]}
+                    </div>
+                    <div className="actions">
+                      <button onClick={() => handleCulSec(giverIndex)}>
+                        ✅ J&apos;ai cul-sec
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : phaseDonne ? (
               <div>
                 {currentGiver && (
                   <>
@@ -261,7 +311,9 @@ const DonnePrendPhase = ({
                               disabled={remainingToGive <= 0}
                             >
                               Donner 1 à {name}
-                              {pendingSplit[index] ? ` (déjà ${pendingSplit[index]})` : ""}
+                              {pendingSplit[index]
+                                ? ` (déjà ${pendingSplit[index]})`
+                                : ""}
                             </button>
                           ),
                       )}
@@ -276,13 +328,10 @@ const DonnePrendPhase = ({
                     <div className="active-player">
                       🍺 À boire : {players[giverIndex]}
                     </div>
-
-                    <div className="counter">
-                      Boit : {currentRound} gorgée(s)
-                    </div>
+                    <div className="counter">Boit : {currentRound} gorgée(s)</div>
 
                     <button onClick={() => handleDrinkGorgee(giverIndex)}>
-                      ✅ J'ai bu
+                      ✅ J&apos;ai bu
                     </button>
                   </>
                 )}
@@ -291,7 +340,9 @@ const DonnePrendPhase = ({
           ) : (
             hardcoreMode && (
               <div className="actions">
-                <button onClick={() => drawCard(true)}>🔥 HARDCORE — Re-tirer</button>
+                <button onClick={() => drawCard(true)}>
+                  🔥 HARDCORE — Re-tirer
+                </button>
               </div>
             )
           )}

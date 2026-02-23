@@ -23,11 +23,9 @@ const DonnePrendPhase = ({
 
   const [hardcoreMode, setHardcoreMode] = useState(false);
   const [pendingSplit, setPendingSplit] = useState({});
-  const [showCoucou, setShowCoucou] = useState(false);
-
   const [hasDrawnThisStep, setHasDrawnThisStep] = useState(false);
 
-  // ✅ anti double "phase suivante" (sinon ça saute/continue après étape 4)
+  // ✅ anti double "phase suivante"
   const [transitionLock, setTransitionLock] = useState(false);
 
   const currentGiver = playersWithCard[currentGiverIndex];
@@ -102,7 +100,7 @@ const DonnePrendPhase = ({
     const holders = computeHolders(card);
 
     if (holders.length === 0) {
-      setMessage("Personne n'a cette valeur. Mode HARDCORE : re-tirez !");
+      setMessage("Personne n'a cette valeur. 🔥 HARDCORE : re-tirez !");
       setHardcoreMode(true);
       setPlayersWithCard([]);
       setCurrentGiverIndex(0);
@@ -118,16 +116,11 @@ const DonnePrendPhase = ({
     if (transitionLock) return;
     setTransitionLock(true);
 
-    // reset UI step
     resetForNextStep();
 
     // Si on était en CULSEC : fin directe
     if (mode === "CULSEC") {
-      setShowCoucou(true);
-      setTimeout(() => setShowCoucou(false), 1200);
       setMode("END");
-
-      // unlock
       setTimeout(() => setTransitionLock(false), 0);
       return;
     }
@@ -142,7 +135,7 @@ const DonnePrendPhase = ({
 
     // PRENDS terminé -> round suivant OU CULSEC
     if (currentRound === 4) {
-      // ✅ après PRENDS étape 4 => CULSEC (avec tirage de carte)
+      // ✅ après PRENDS 4 => CULSEC (avec tirage de carte)
       setMode("CULSEC");
       setPhaseDonne(true);
       setTimeout(() => setTransitionLock(false), 0);
@@ -184,13 +177,6 @@ const DonnePrendPhase = ({
         setMessage("✅ Joueur suivant !");
       } else {
         setMessage("✅ Distribution terminée.");
-
-        // petit test coucou fin DONNE étape 2
-        if (currentRound === 2) {
-          setShowCoucou(true);
-          setTimeout(() => setShowCoucou(false), 1200);
-        }
-
         setTimeout(() => handleNextPhase(), 800);
       }
     }
@@ -213,12 +199,12 @@ const DonnePrendPhase = ({
     }
   };
 
-  // CUL SEC : tu voulais tirer une carte aussi (déjà fait), si match => cul sec, sinon hardcore
+  // CUL SEC : (match) => cul sec, sinon hardcore (géré via holders)
   const handleCulSec = (playerIndex) => {
     updateGorgees({
       type: "DRINK",
       toPlayer: playerIndex,
-      amount: 10, // valeur arbitraire interne (cul sec)
+      amount: 10, // valeur interne (cul sec)
     });
 
     setMessage(`${players[playerIndex]} : CUL SEC 🥴`);
@@ -231,11 +217,12 @@ const DonnePrendPhase = ({
   };
 
   const phaseTitle = (() => {
-    if (mode === "CULSEC") return "CUL SEC 🔥 (tirer une carte)";
-    if (mode === "END") return "FIN DE BEUVERIE ✅";
+    if (mode === "CULSEC") return "🥃 CUL SEC — tire une carte";
+    if (mode === "END") return "🏁 Fin de beuverie";
+
     return phaseDonne
-      ? `DONNE — étape ${currentRound}`
-      : `PRENDS — étape ${currentRound}`;
+      ? `🍻 Donne ${currentRound} gorgée${currentRound > 1 ? "s" : ""}`
+      : `🍺 Prends ${currentRound} gorgée${currentRound > 1 ? "s" : ""}`;
   })();
 
   return (
@@ -243,7 +230,6 @@ const DonnePrendPhase = ({
       <h1>Donne / Prend</h1>
       <h2>{phaseTitle}</h2>
 
-      {showCoucou && <div className="message">coucou ✅</div>}
       {message && <div className="message">{message}</div>}
 
       {mode === "END" ? (
@@ -264,7 +250,6 @@ const DonnePrendPhase = ({
         </div>
       ) : (
         <div className="panel">
-          {/* ✅ Plus de texte à côté de la carte : la Card suffit */}
           {currentCard && (
             <div className="card-slot">
               <Card card={currentCard} />
@@ -310,7 +295,7 @@ const DonnePrendPhase = ({
                               onClick={() => handleDistributeOne(index)}
                               disabled={remainingToGive <= 0}
                             >
-                              Donner 1 à {name}
+                              Donner une gorgée à {name}
                               {pendingSplit[index]
                                 ? ` (déjà ${pendingSplit[index]})`
                                 : ""}
@@ -328,7 +313,9 @@ const DonnePrendPhase = ({
                     <div className="active-player">
                       🍺 À boire : {players[giverIndex]}
                     </div>
-                    <div className="counter">Boit : {currentRound} gorgée(s)</div>
+                    <div className="counter">
+                      Boit : {currentRound} gorgée(s)
+                    </div>
 
                     <button onClick={() => handleDrinkGorgee(giverIndex)}>
                       ✅ J&apos;ai bu
@@ -341,7 +328,7 @@ const DonnePrendPhase = ({
             hardcoreMode && (
               <div className="actions">
                 <button onClick={() => drawCard(true)}>
-                  🔥 HARDCORE — Re-tirer
+                  🔥 HARDCOOOOOOOOORE !
                 </button>
               </div>
             )

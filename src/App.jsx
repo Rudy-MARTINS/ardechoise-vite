@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./app.css";
 import WowGuy from "./assets/images/WowGuy.webp";
 import Card from "./components/Card/Card";
+import MiniCard from "./components/Card/MiniCard";
 import DonnePrendPhase from "./components/DonnePrendPhase/DonnePrendPhase";
 
 function App() {
@@ -429,12 +430,16 @@ function App() {
               {playerCards[currentPlayer].length > 0 && (
                 <div>
                   <h3>Cartes tirées par {playerNames[currentPlayer]}</h3>
-                  {playerCards[currentPlayer].map((card, index) => (
-                    <p key={index}>
-                      {getCardValue(card.value)} de{" "}
-                      {getSymbolForSuit(card.suit)}
-                    </p>
-                  ))}
+
+                  {/* ✅ Mini recap (wrap, sans scroll) */}
+                  <div className="cards-recap">
+                    {playerCards[currentPlayer].map((card, index) => (
+                      <MiniCard
+                        key={`${card.value}-${card.suit}-${index}`}
+                        card={card}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -444,9 +449,7 @@ function App() {
                   <button onClick={() => handlePlayerGuess("rouge")}>
                     Rouge
                   </button>
-                  <button onClick={() => handlePlayerGuess("noir")}>
-                    Noir
-                  </button>
+                  <button onClick={() => handlePlayerGuess("noir")}>Noir</button>
                 </div>
               )}
 
@@ -462,9 +465,7 @@ function App() {
                   <button onClick={() => handlePlayerGuess("inférieure")}>
                     Inférieure
                   </button>
-                  <button onClick={() => handlePlayerGuess("égale")}>
-                    Égale
-                  </button>
+                  <button onClick={() => handlePlayerGuess("égale")}>Égale</button>
                 </div>
               )}
 
@@ -486,15 +487,11 @@ function App() {
               {roundNumber === 4 && !showDistribution && !cardRevealed && (
                 <div>
                   <h3>Devinez la forme de la carte</h3>
-                  <button onClick={() => handlePlayerGuess("cœur")}>
-                    Cœur
-                  </button>
+                  <button onClick={() => handlePlayerGuess("cœur")}>Cœur</button>
                   <button onClick={() => handlePlayerGuess("carreau")}>
                     Carreau
                   </button>
-                  <button onClick={() => handlePlayerGuess("pique")}>
-                    Pique
-                  </button>
+                  <button onClick={() => handlePlayerGuess("pique")}>Pique</button>
                   <button onClick={() => handlePlayerGuess("trèfle")}>
                     Trèfle
                   </button>

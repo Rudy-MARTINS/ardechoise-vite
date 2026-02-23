@@ -52,3 +52,70 @@
   opacity: 0.8;
   margin-top: 8px;
 }
+/* ====== MINI CARD (recap) ====== */
+
+.cards-recap {
+  width: min(520px, 92vw);
+  margin: 10px auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-content: flex-start;
+}
+
+.mini-card {
+  width: clamp(44px, 9vw, 62px);
+  height: clamp(62px, 13vw, 88px);
+  background: white;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.mini-card.red {
+  color: #d11;
+}
+
+.mini-card.black {
+  color: #111;
+}
+
+.mini-corner {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  gap: 2px;
+  font-weight: 700;
+  font-size: clamp(10px, 2.2vw, 12px);
+}
+
+.mini-corner.bottom {
+  top: auto;
+  left: auto;
+  right: 6px;
+  bottom: 6px;
+  transform: rotate(180deg);
+}
+
+.mini-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: clamp(18px, 4.5vw, 28px);
+  opacity: 0.95;
+}
+
+.mini-value {
+  font-size: inherit;
+}
+
+.mini-suit {
+  font-size: inherit;
+}

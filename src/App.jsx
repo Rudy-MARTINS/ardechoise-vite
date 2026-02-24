@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import "./app.css";
-import WowGuy from "./assets/images/WowGuy.webp";
 import Card from "./components/Card/Card";
 import MiniCard from "./components/Card/MiniCard";
 import DonnePrendPhase from "./components/DonnePrendPhase/DonnePrendPhase";
@@ -9,6 +8,7 @@ function App() {
   const [numPlayers, setNumPlayers] = useState(2);
   const [playerNames, setPlayerNames] = useState(Array(numPlayers).fill(""));
   const [startGame, setStartGame] = useState(false);
+  const [startSound] = useState(() => new Audio("/pop champ.wav"));
 
   const [currentPlayer, setCurrentPlayer] = useState(0);
   const [roundNumber, setRoundNumber] = useState(1);
@@ -114,10 +114,18 @@ function App() {
     setPlayerNames(newPlayerNames);
   };
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     if (!playerNames.every((name) => name.trim() !== "")) {
       alert("Veuillez remplir tous les noms des joueurs.");
       return;
+    }
+
+    try {
+      startSound.currentTime = 0;
+      startSound.volume = 0.6;
+      await startSound.play();
+    } catch (e) {
+      // si iOS/Chrome bloque, le jeu démarre quand même
     }
 
     setStartGame(true);
@@ -311,9 +319,7 @@ function App() {
     setCurrentCard(newCard);
     setCardRevealed(false);
     setCurrentPlayer(nextPlayer);
-    setMessage(
-      `${playerNames[nextPlayer]}, à toi de jouer pour le tour ${roundNumber}.`,
-    );
+    setMessage(`${playerNames[nextPlayer]}, à toi de jouer.`);
   };
 
   // ✅ Donne/Prend utilise ça
@@ -343,7 +349,7 @@ function App() {
     }
   };
 
-  // ✅ Compteur dynamique (phase 1)
+  // Compteur dynamique (phase 1)
   const distributedSoFar = splitGorgees.reduce(
     (total, entry) => total + entry.amount,
     0,
@@ -384,12 +390,8 @@ function App() {
               playerCards={playerCards}
               updateGorgees={applyGorgees}
               onFinish={(action) => {
-                if (action === "RESTART") {
-                  window.location.reload(); // simple & efficace (tu pourras faire plus propre après)
-                }
-                if (action === "HOME") {
-                  window.location.reload();
-                }
+                if (action === "RESTART") window.location.reload();
+                if (action === "HOME") window.location.reload();
               }}
             />
           ) : showRecap ? (
@@ -431,7 +433,6 @@ function App() {
                 <div>
                   <h3>Cartes tirées par {playerNames[currentPlayer]}</h3>
 
-                  {/* ✅ Mini recap (wrap, sans scroll) */}
                   <div className="cards-recap">
                     {playerCards[currentPlayer].map((card, index) => (
                       <MiniCard
@@ -445,56 +446,106 @@ function App() {
 
               {roundNumber === 1 && !showDistribution && !cardRevealed && (
                 <div>
-                  <h3>Devinez si la carte est rouge ou noire</h3>
-                  <button onClick={() => handlePlayerGuess("rouge")}>
-                    Rouge
-                  </button>
-                  <button onClick={() => handlePlayerGuess("noir")}>Noir</button>
+                  <h3>Devine si la carte est rouge ou noire</h3>
+                  <div className="choice-container choice-2">
+                    <button
+                      className="btn-rge"
+                      onClick={() => handlePlayerGuess("rouge")}
+                    >
+                      Rouge
+                    </button>
+                    <button
+                      className="btn-noir"
+                      onClick={() => handlePlayerGuess("noir")}
+                    >
+                      Noir
+                    </button>
+                  </div>
                 </div>
               )}
 
               {roundNumber === 2 && !showDistribution && !cardRevealed && (
                 <div>
                   <h3>
-                    Devinez si la carte est supérieure, inférieure ou égale à la
+                    Devine si la carte est supérieure, inférieure ou égale à la
                     première
                   </h3>
-                  <button onClick={() => handlePlayerGuess("supérieure")}>
-                    Supérieure
-                  </button>
-                  <button onClick={() => handlePlayerGuess("inférieure")}>
-                    Inférieure
-                  </button>
-                  <button onClick={() => handlePlayerGuess("égale")}>Égale</button>
+                  <div className="choice-container choice-3">
+                    <button
+                      className="btn-sup"
+                      onClick={() => handlePlayerGuess("supérieure")}
+                    >
+                      Supérieure
+                    </button>
+                    <button
+                      className="btn-inf"
+                      onClick={() => handlePlayerGuess("inférieure")}
+                    >
+                      Inférieure
+                    </button>
+                    <button
+                      className="btn-egal"
+                      onClick={() => handlePlayerGuess("égale")}
+                    >
+                      Égale
+                    </button>
+                  </div>
                 </div>
               )}
 
               {roundNumber === 3 && !showDistribution && !cardRevealed && (
                 <div>
                   <h3>
-                    Devinez si la carte est à l'intérieur ou à l'extérieur des
-                    cartes précédentes
+                    Devine si la valeur de la carte est à l'intérieur ou à
+                    l'extérieur des cartes précédentes, l'AS est la valeur la
+                    plus haute
                   </h3>
-                  <button onClick={() => handlePlayerGuess("intérieur")}>
-                    À l'intérieur
-                  </button>
-                  <button onClick={() => handlePlayerGuess("extérieur")}>
-                    À l'extérieur
-                  </button>
+                  <div className="choice-container choice-2">
+                    <button
+                      className="btn-int"
+                      onClick={() => handlePlayerGuess("intérieur")}
+                    >
+                      À l'intérieur
+                    </button>
+                    <button
+                      className="btn-ext"
+                      onClick={() => handlePlayerGuess("extérieur")}
+                    >
+                      À l'extérieur
+                    </button>
+                  </div>
                 </div>
               )}
 
               {roundNumber === 4 && !showDistribution && !cardRevealed && (
                 <div>
-                  <h3>Devinez la forme de la carte</h3>
-                  <button onClick={() => handlePlayerGuess("cœur")}>Cœur</button>
-                  <button onClick={() => handlePlayerGuess("carreau")}>
-                    Carreau
-                  </button>
-                  <button onClick={() => handlePlayerGuess("pique")}>Pique</button>
-                  <button onClick={() => handlePlayerGuess("trèfle")}>
-                    Trèfle
-                  </button>
+                  <h3>Devines la forme de la carte</h3>
+                  <div className="choice-container choice-4">
+                    <button
+                      className="coeur"
+                      onClick={() => handlePlayerGuess("cœur")}
+                    >
+                      Cœur
+                    </button>
+                    <button
+                      className="carreau"
+                      onClick={() => handlePlayerGuess("carreau")}
+                    >
+                      Carreau
+                    </button>
+                    <button
+                      className="pique"
+                      onClick={() => handlePlayerGuess("pique")}
+                    >
+                      Pique
+                    </button>
+                    <button
+                      className="trefle"
+                      onClick={() => handlePlayerGuess("trèfle")}
+                    >
+                      Trèfle
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -513,7 +564,7 @@ function App() {
                           onClick={() => distributeGorgees(index, 1)}
                           disabled={remainingToDistribute <= 0}
                         >
-                          Donner 1 gorgée à {name}
+                          Donner une gorgée à {name}
                         </button>
                       ),
                   )}
@@ -532,13 +583,24 @@ function App() {
         </div>
       ) : (
         <div className="player-setup">
-          <h1 className="title">L'Ardechoise</h1>
-          <h2 className="citation">
-            Pour les gens qu'on pas peur de boire... de l'eau
-          </h2>
-          <h4 className="jcvd">" Dans 20 - 30 ans y en aura plus " - JCVD</h4>
+          <h1 className="title titre-principal">
+            <span>L'</span>
+            <span>A</span>
+            <span>R</span>
+            <span>D</span>
+            <span>É</span>
+            <span>C</span>
+            <span>H</span>
+            <span>O</span>
+            <span>I</span>
+            <span>S</span>
+            <span>E</span>
+          </h1>
 
-          <img src={WowGuy} alt="WOW Guy" className="wow-image" />
+          <h3 className="citation">
+            Pour les gens qu'on pas peur de boire... de l'eau
+          </h3>
+          <h4 className="jcvd">" Dans 20 - 30 ans y en aura plus " - JCVD</h4>
 
           <div className="player-selection">
             <label htmlFor="numPlayers">Nombre de joueurs :</label>
@@ -567,8 +629,13 @@ function App() {
             </div>
           </div>
 
-          <button className="start-game-btn" onClick={handleStartGame}>
-            Lancer le jeu
+          <button className="start-cta" onClick={handleStartGame}>
+            <span className="start-cta__label">Lancer le jeu</span>
+            <span className="start-cta__hint" aria-hidden="true">
+              <div className="verre-ajust">
+                <div className="verre" />
+              </div>
+            </span>
           </button>
         </div>
       )}

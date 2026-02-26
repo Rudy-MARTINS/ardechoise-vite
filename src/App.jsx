@@ -519,7 +519,7 @@ function App() {
 
               {roundNumber === 4 && !showDistribution && !cardRevealed && (
                 <div>
-                  <h3>Devines la forme de la carte</h3>
+                  <h3>Devine la forme de la carte</h3>
                   <div className="choice-container choice-4">
                     <button
                       className="coeur"
@@ -541,7 +541,7 @@ function App() {
                     </button>
                     <button
                       className="trefle"
-                      onClick={() => handlePlayerGuess("trèfle")}
+                      onClick={() => handlePlayerGuess("trefle")}
                     >
                       Trèfle
                     </button>
@@ -583,60 +583,64 @@ function App() {
         </div>
       ) : (
         <div className="player-setup">
-          <h1 className="title titre-principal">
-            <span>L'</span>
-            <span>A</span>
-            <span>R</span>
-            <span>D</span>
-            <span>É</span>
-            <span>C</span>
-            <span>H</span>
-            <span>O</span>
-            <span>I</span>
-            <span>S</span>
-            <span>E</span>
-          </h1>
-
-          <h3 className="citation">
-            Pour les gens qu'on pas peur de boire... de l'eau
-          </h3>
-          <h4 className="jcvd">" Dans 20 - 30 ans y en aura plus " - JCVD</h4>
-
-          <div className="player-selection">
-            <label htmlFor="numPlayers">Nombre de joueurs :</label>
-            <select
-              id="numPlayers"
-              value={numPlayers}
-              onChange={handleNumPlayersChange}
-            >
-              {[...Array(9).keys()].map((num) => (
-                <option key={num + 2} value={num + 2}>
-                  {num + 2}
-                </option>
-              ))}
-            </select>
-
-            <div className="player-names">
-              {playerNames.map((name, index) => (
-                <input
-                  key={index}
-                  type="text"
-                  placeholder={`Joueur ${index + 1}`}
-                  value={name}
-                  onChange={(e) => handlePlayerNameChange(e, index)}
+          <div className="home-layout">
+            <div className="home-top">
+              <div className="app-logo-wrap">
+                <img
+                  src="/logo.png"
+                  alt="Logo Ardéchoise"
+                  className="app-logo"
                 />
-              ))}
+              </div>
+
+              <h3 className="citation">
+                Pour les gens qu'on pas peur de boire... de l'eau
+              </h3>
+              <h4 className="jcvd">
+                " Dans 20 - 30 ans y en aura plus " - JCVD
+              </h4>
+            </div>
+
+            <div className="home-middle">
+              <div className="player-selection">
+                <label htmlFor="numPlayers">Nombre de joueurs :</label>
+                <select
+                  id="numPlayers"
+                  value={numPlayers}
+                  onChange={handleNumPlayersChange}
+                >
+                  {[...Array(9).keys()].map((num) => (
+                    <option key={num + 2} value={num + 2}>
+                      {num + 2}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="player-names">
+                  {playerNames.map((name, index) => (
+                    <input
+                      key={index}
+                      type="text"
+                      placeholder={`Joueur ${index + 1}`}
+                      value={name}
+                      onChange={(e) => handlePlayerNameChange(e, index)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="home-bottom">
+              <button className="start-cta" onClick={handleStartGame}>
+                <span className="start-cta__label">Lancer le jeu</span>
+                <span className="start-cta__hint" aria-hidden="true">
+                  <div className="verre-ajust">
+                    <div className="verre" />
+                  </div>
+                </span>
+              </button>
             </div>
           </div>
-
-          <button className="start-cta" onClick={handleStartGame}>
-            <span className="start-cta__label">Lancer le jeu</span>
-            <span className="start-cta__hint" aria-hidden="true">
-              <div className="verre-ajust">
-                <div className="verre" />
-              </div>
-            </span>
-          </button>
         </div>
       )}
     </div>

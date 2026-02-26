@@ -1,37 +1,37 @@
-/* app.css (clean, sans doublons) */
-
 /* =========================
    THEME
 ========================= */
 :root {
-  /* Sunset background */
   --bg1: #ffd166;
   --bg2: #ff9f1c;
   --bg3: #ff6b35;
 
-  /* Base */
-  --bg: #fff7ed; /* fallback */
   --text: #1a1a1a;
   --card-max: 420px;
 
-  /* CTA (start) */
   --primary1: #ffd166;
   --primary2: #ff9f1c;
-  --cta-text: #3a2a1a;
+
+  --cta-text: #edf4f0;
 }
 
 /* =========================
-   GLOBAL
+   GLOBAL / RESET
 ========================= */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
+html, body, #root {
+  height: auto;
+  min-height: 100%;
+}
 
 body {
   margin: 0;
   font-family: Arial, sans-serif;
+  color: var(--text);
 
   background: linear-gradient(
     180deg,
@@ -40,48 +40,138 @@ body {
     var(--bg3) 100%
   );
 
-  color: var(--text);
-  min-height: 100vh;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
 }
 
 .App {
-  padding: 20px;
+  min-height: 100dvh;
   text-align: center;
+  padding: 0; /* padding géré par home-layout */
 }
 
 /* =========================
-   HOME (setup)
+   HOME LAYOUT (setup)
+   - pas de scroll global
+   - scroll seulement dans le milieu si 3+ joueurs
 ========================= */
-.title {
-   font-size: 3rem;          
-  line-height: 1.05;
-  margin: 6px 0 10px;
-  font-weight: 900;
-  letter-spacing: 0.4px;
-
-  color: rgba(255, 255, 255, 0.75);
-  text-shadow:
-    0 2px 0 rgba(0, 0, 0, 0.12),
-    0 8px 18px rgba(0, 0, 0, 0.18);
+.player-setup {
+  min-height: 100dvh;
 }
 
+.home-layout {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.home-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 6px;
+}
+
+.home-middle {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 10px;
+  min-height: 0;
+}
+
+.home-bottom {
+  margin-top: auto;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* =========================
+   LOGO (grand, centré, safe)
+========================= */
+.app-logo-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  /* Cadre qui empêche tout dépassement pendant l'anim */
+  height: clamp(110px, 22vh, 190px);
+  overflow: hidden;
+
+  /* petit breathing room */
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+.app-logo {
+  display: block;
+
+  /* grand sur mobile sans exploser */
+  width: min(88vw, 420px);
+  height: 180%;
+  object-fit: contain;
+
+  /* ombre sympa */
+ filter: drop-shadow(0 4px 10px rgba(120, 40, 0, 0.16));
+
+  /* anim douce */
+  animation: logoFloatSafe 3.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* amplitude calculée pour ne jamais sortir du cadre */
+@keyframes logoFloatSafe {
+  0%, 100% { transform: translateY(4px); }
+  50% { transform: translateY(-4px); }
+}
+
+/* Si écran très petit, on réduit encore l'amplitude */
+@media (max-height: 700px) {
+  .app-logo-wrap {
+    height: clamp(88px, 16vh, 140px);
+  }
+  @keyframes logoFloatSafe {
+    0%, 100% { transform: translateY(3px); }
+    50% { transform: translateY(-3px); }
+  }
+}
+
+/* Accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  .app-logo { animation: none; }
+}
+
+/* =========================
+   TEXTS (home)
+========================= */
 .citation {
-  margin: 0 0 6px;
-  font-size: 1rem;          
+  margin: 0;
+  font-size: 1rem;
   line-height: 1.2;
   font-weight: 800;
-  color: rgba(0, 0, 0, 0.85);
+  color: rgba(0, 0, 0, 0.88);
 }
 
 .jcvd {
-  margin: 0 0 12px;
-  font-size: 1rem;          /* + petit aussi */
+  margin: 0 0 6px;
+  font-size: 0.95rem;
   line-height: 1.2;
   opacity: 0.9;
 }
 
+/* =========================
+   PLAYER SETUP UI
+========================= */
 .player-selection {
-  margin-bottom: 10px;
+  margin: 0;
+}
+
+.player-selection label {
+  font-weight: 700;
 }
 
 .player-selection select {
@@ -89,6 +179,11 @@ body {
   padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid #cfcfcf;
+  background: #fff;
+}
+
+.player-names {
+  margin-top: 10px;
 }
 
 .player-names input {
@@ -101,93 +196,69 @@ body {
   border-radius: 10px;
 }
 
-/* Titre principal */
-.titre-principal {
-  display: inline-block;
-  font-family:
-    "Fredoka",
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    Arial,
+/* =========================
+   START CTA (SANS ANIM)
+========================= */
+.start-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+
+  width: 80%;
+  max-width: var(--card-max);
+  margin: 0 auto;
+
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 999px;
+
+  background: linear-gradient(180deg, var(--primary1) 0%, var(--primary2) 100%);
+  color: var(--cta-text);
+
+  cursor: pointer;
+  user-select: none;
+
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+}
+
+.start-cta__label {
+  font-family: "Fredoka", system-ui, -apple-system, Segoe UI, Roboto, Arial,
     sans-serif;
-  font-weight: 900;
-  letter-spacing: 0.5px;
-  line-height: 1;
-  margin: 0 0 12px;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
-.titre-principal span {
-  display: inline-block;
-  background: linear-gradient(180deg, #fff 0%, #ffe8b5 35%, #ffcf5c 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
-  animation: floatLetter 2.5s ease-in-out infinite;
+.start-cta__hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Optionnel : petit décalage d'animation par lettre */
-.titre-principal span:nth-child(1) {
-  animation-delay: 0ms;
-}
-.titre-principal span:nth-child(2) {
-  animation-delay: 60ms;
-}
-.titre-principal span:nth-child(3) {
-  animation-delay: 120ms;
-}
-.titre-principal span:nth-child(4) {
-  animation-delay: 180ms;
-}
-.titre-principal span:nth-child(5) {
-  animation-delay: 240ms;
-}
-.titre-principal span:nth-child(6) {
-  animation-delay: 300ms;
-}
-.titre-principal span:nth-child(7) {
-  animation-delay: 360ms;
-}
-.titre-principal span:nth-child(8) {
-  animation-delay: 420ms;
-}
-.titre-principal span:nth-child(9) {
-  animation-delay: 480ms;
-}
-.titre-principal span:nth-child(10) {
-  animation-delay: 540ms;
-}
-.titre-principal span:nth-child(11) {
-  animation-delay: 600ms;
+/* Hover/active simples (pas d’anim) */
+.start-cta:hover {
+  filter: brightness(1.03);
 }
 
-@keyframes floatLetter {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-4px);
-  }
+.start-cta:active {
+  transform: translateY(1px);
 }
 
 /* =========================
-   GLASS ANIM (verre)
+   GLASS (verre) - animation conservée
 ========================= */
 .verre-ajust {
   display: flex;
-  justify-content: center;
   align-items: center;
-  margin: 20px auto;
-  width: 100%;
+  justify-content: center;
+  margin: 0; /* important dans le bouton */
 }
 
 .verre {
-  width: 35px;
-  height: 80px;
+  width: 28px;
+  height: 60px;
   position: relative;
 }
 
@@ -211,7 +282,7 @@ body {
 .verre::before {
   content: "";
   position: absolute;
-  inset: -18px calc(50% - 2px) 8px;
+  inset: -14px calc(50% - 2px) 8px;
 
   background: #eb6b3e;
   transform-origin: bottom;
@@ -224,127 +295,6 @@ body {
   }
   100% {
     background-size: 100% 5%;
-  }
-}
-
-/* (optionnel) si tu gardes encore une image quelque part */
-.wow-image {
-  width: 20rem;
-  max-width: 90vw;
-  margin: 14px auto;
-  display: block;
-  border-radius: 12px;
-}
-
-/* =========================
-   START CTA (animated button)
-========================= */
-.start-cta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-
-  width: 80%;
-  max-width: var(--card-max);
-  margin: 18px auto 0;
-
-  padding: 14px 18px;
-  border: 0;
-  border-radius: 999px;
-
-  background: linear-gradient(180deg, var(--primary1) 0%, var(--primary2) 100%);
-  color: var(--cta-text);
-
-  cursor: pointer;
-  user-select: none;
-
-  box-shadow:
-    0 10px 22px rgba(0, 0, 0, 0.18),
-    inset 0 2px 0 rgba(255, 255, 255, 0.25);
-
-  transform: translateZ(0);
-  will-change: transform;
-  animation:
-    ctaFloat 2.4s ease-in-out infinite,
-    ctaPulse 1.5s ease-in-out infinite;
-}
-
-.start-cta__label {
-  font-family:
-    "Fredoka",
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    Arial,
-    sans-serif;
-  font-weight: 700;
-  font-size: 20px;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-}
-
-.start-cta__hint {
-  font-size: 22px;
-  opacity: 0.95;
-}
-
-.start-cta:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.04);
-}
-
-.start-cta:active {
-  transform: translateY(1px) scale(0.99);
-  filter: brightness(0.98);
-}
-
-.start-cta:focus-visible {
-  outline: 3px solid rgba(255, 159, 28, 0.45);
-  outline-offset: 4px;
-}
-
-@keyframes ctaFloat {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-4px);
-  }
-}
-
-@keyframes ctaPulse {
-  0%,
-  100% {
-    box-shadow:
-      0 10px 22px rgba(0, 0, 0, 0.18),
-      inset 0 2px 0 rgba(255, 255, 255, 0.25);
-  }
-  50% {
-    box-shadow:
-      0 14px 28px rgba(0, 0, 0, 0.22),
-      inset 0 2px 0 rgba(255, 255, 255, 0.3);
-  }
-}
-
-@keyframes ctaHint {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  50% {
-    transform: translateX(6px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .start-cta,
-  .start-cta__hint,
-  .titre-principal span,
-  .verre::after {
-    animation: drink 5s infinite linear;
   }
 }
 
@@ -363,7 +313,6 @@ body {
   opacity: 0.85;
 }
 
-/* Mini cards recap */
 .cards-recap {
   display: flex;
   flex-wrap: wrap;
@@ -374,9 +323,7 @@ body {
 }
 
 /* =========================
-   CHOICES UI (buttons)
-   -> IMPORTANT : il faut wrapper tes boutons
-      dans <div className="choice-container choice-2"> etc
+   CHOICES UI
 ========================= */
 .choice-container {
   display: grid;
@@ -403,9 +350,8 @@ body {
   }
 }
 
-/* base style pour les boutons de choix UNIQUEMENT */
 .choice-container button {
-  margin: 0; /* on vire les marges globales */
+  margin: 0;
   padding: 14px 10px;
   border: none;
   border-radius: 14px;
@@ -417,25 +363,12 @@ body {
   background: #fff;
   color: #111;
 
-  box-shadow:
-    0 10px 18px rgba(0, 0, 0, 0.08),
-    0 2px 0 rgba(0, 0, 0, 0.06);
-
-  transition:
-    transform 0.15s ease,
-    filter 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.choice-container button:hover {
-  filter: brightness(0.97);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.08), 0 2px 0 rgba(0, 0, 0, 0.06);
 }
 
 .choice-container button:active {
   transform: translateY(2px);
-  box-shadow:
-    0 5px 10px rgba(0, 0, 0, 0.08),
-    0 1px 0 rgba(0, 0, 0, 0.06);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.08), 0 1px 0 rgba(0, 0, 0, 0.06);
 }
 
 .choice-container button:disabled {
@@ -443,7 +376,7 @@ body {
   cursor: not-allowed;
 }
 
-/* Variantes (tes className) */
+/* Variantes */
 .btn-rge {
   color: #b91c1c;
   border: 1px solid rgba(185, 28, 28, 0.2);
@@ -474,7 +407,6 @@ body {
   background: linear-gradient(135deg, #e5e7eb, #d1d5db);
 }
 
-/* Suits (⚠️ évite l'accent dans className: utilise "trefle") */
 .coeur,
 .carreau {
   color: #dc2626;
@@ -501,18 +433,23 @@ body {
 }
 
 /* =========================
+   ACCESSIBILITY
+========================= */
+@media (prefers-reduced-motion: reduce) {
+  .app-logo {
+    animation: none;
+  }
+  .verre::after {
+    animation: none;
+    background-size: 100% 60%;
+  }
+}
+
+/* =========================
    DESKTOP
 ========================= */
 @media (min-width: 768px) {
-  .title {
-    font-size: 32px;
-  }
-
   .player-names input {
     width: 40%;
-  }
-
-  .wow-image {
-    width: 200px;
   }
 }

@@ -23,7 +23,9 @@
 *::after {
   box-sizing: border-box;
 }
-html, body, #root {
+html,
+body,
+#root {
   height: auto;
   min-height: 100%;
 }
@@ -116,7 +118,7 @@ body {
   object-fit: contain;
 
   /* ombre sympa */
- filter: drop-shadow(0 4px 10px rgba(120, 40, 0, 0.16));
+  filter: drop-shadow(0 4px 10px rgba(120, 40, 0, 0.16));
 
   /* anim douce */
   animation: logoFloatSafe 3.2s ease-in-out infinite;
@@ -125,8 +127,13 @@ body {
 
 /* amplitude calculée pour ne jamais sortir du cadre */
 @keyframes logoFloatSafe {
-  0%, 100% { transform: translateY(4px); }
-  50% { transform: translateY(-4px); }
+  0%,
+  100% {
+    transform: translateY(4px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 /* Si écran très petit, on réduit encore l'amplitude */
@@ -135,14 +142,21 @@ body {
     height: clamp(88px, 16vh, 140px);
   }
   @keyframes logoFloatSafe {
-    0%, 100% { transform: translateY(3px); }
-    50% { transform: translateY(-3px); }
+    0%,
+    100% {
+      transform: translateY(3px);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
   }
 }
 
 /* Accessibilité */
 @media (prefers-reduced-motion: reduce) {
-  .app-logo { animation: none; }
+  .app-logo {
+    animation: none;
+  }
 }
 
 /* =========================
@@ -223,7 +237,13 @@ body {
 }
 
 .start-cta__label {
-  font-family: "Fredoka", system-ui, -apple-system, Segoe UI, Roboto, Arial,
+  font-family:
+    "Fredoka",
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Arial,
     sans-serif;
   font-weight: 800;
   font-size: 20px;
@@ -329,6 +349,7 @@ body {
   display: grid;
   gap: 12px;
   margin-top: 14px;
+
   width: min(420px, 92vw);
   margin-left: auto;
   margin-right: auto;
@@ -337,9 +358,11 @@ body {
 .choice-2 {
   grid-template-columns: repeat(2, 1fr);
 }
+
 .choice-3 {
   grid-template-columns: repeat(3, 1fr);
 }
+
 .choice-4 {
   grid-template-columns: repeat(2, 1fr);
 }
@@ -355,20 +378,30 @@ body {
   padding: 14px 10px;
   border: none;
   border-radius: 14px;
-
-  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  min-height: 48px;
+  line-height: 1.2;
+  font-size: 1rem;
   font-weight: 800;
 
   cursor: pointer;
-  background: #fff;
-  color: #111;
+  background: linear-gradient(180deg, var(--primary1) 0%, var(--primary2) 100%);
+  color: #edf4f0;
 
-  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.08), 0 2px 0 rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 10px 18px rgba(0, 0, 0, 0.08),
+    0 2px 0 rgba(0, 0, 0, 0.06);
 }
 
 .choice-container button:active {
   transform: translateY(2px);
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.08), 0 1px 0 rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 5px 10px rgba(0, 0, 0, 0.08),
+    0 1px 0 rgba(0, 0, 0, 0.06);
 }
 
 .choice-container button:disabled {

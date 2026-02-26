@@ -129,9 +129,7 @@ function App() {
     }
 
     setStartGame(true);
-    setMessage(
-      `${playerNames[currentPlayer]} commence le tour 1 : Rouge ou Noir.`,
-    );
+    setMessage(`${playerNames[currentPlayer]} A toi de jouer !`);
     const card = drawCard();
     setCurrentCard(card);
     setCardRevealed(false);
@@ -163,7 +161,7 @@ function App() {
 
     if ((guess === "rouge" && isRed) || (guess === "noir" && !isRed)) {
       setMessage(
-        `${playerNames[currentPlayer]} a deviné correctement et peut distribuer ${roundNumber} gorgée(s).`,
+        `${playerNames[currentPlayer]}, bien joué tu peux distribuer ${roundNumber} gorgée(s).`,
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
@@ -191,7 +189,7 @@ function App() {
 
     if (ok) {
       setMessage(
-        `${playerNames[currentPlayer]} a deviné correctement et peut distribuer ${roundNumber} gorgée(s).`,
+        `${playerNames[currentPlayer]}, bien joué tu peux distribuer ${roundNumber} gorgée(s).`,
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
@@ -220,7 +218,7 @@ function App() {
 
     if (ok) {
       setMessage(
-        `${playerNames[currentPlayer]} a deviné correctement et peut distribuer ${roundNumber} gorgée(s).`,
+        `${playerNames[currentPlayer]}, bien joué tu peux distribuer ${roundNumber} gorgée(s).`,
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
@@ -242,7 +240,7 @@ function App() {
 
     if (ok) {
       setMessage(
-        `${playerNames[currentPlayer]} a deviné correctement et peut distribuer ${roundNumber} gorgée(s).`,
+        `${playerNames[currentPlayer]}, CHAAAAAMMMPIIOOOOOOON tu peux distribuer ${roundNumber} gorgée(s).`,
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
@@ -361,7 +359,7 @@ function App() {
       <div key={index}>
         <p>
           {name} a distribué {gorgeesDistribuees[index]} gorgées et a bu{" "}
-          {gorgeesRecues[index]} gorgées.
+          {gorgeesRecues[index]} gorgées. "bande gros de sacs"
         </p>
         <p>
           Cartes tirées :{" "}
@@ -497,9 +495,9 @@ function App() {
                 <div>
                   <h3>
                     Devine si la valeur de la carte est à l'intérieur ou à
-                    l'extérieur des cartes précédentes, l'AS est la valeur la
-                    plus haute
+                    l'extérieur des cartes précédentes
                   </h3>
+                  <h4>l'AS est la valeur la plus haute</h4>
                   <div className="choice-container choice-2">
                     <button
                       className="btn-int"
@@ -531,7 +529,7 @@ function App() {
                       className="carreau"
                       onClick={() => handlePlayerGuess("carreau")}
                     >
-                      Carreau
+                      Carreau (les vrais savent)
                     </button>
                     <button
                       className="pique"

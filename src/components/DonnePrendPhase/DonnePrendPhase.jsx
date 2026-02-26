@@ -13,7 +13,7 @@ const DonnePrendPhase = ({
   const [currentRound, setCurrentRound] = useState(1); // 1..4
   const [phaseDonne, setPhaseDonne] = useState(true); // Donne / Prends
   const [mode, setMode] = useState("NORMAL"); // "NORMAL" | "CULSEC" | "END"
-
+  const [hardcoreSound] = useState(() => new Audio("/hardcore.wav"));
   const [currentCard, setCurrentCard] = useState(null);
   const [cardRevealed, setCardRevealed] = useState(false);
   const [message, setMessage] = useState("");
@@ -100,7 +100,7 @@ const DonnePrendPhase = ({
     const holders = computeHolders(card);
 
     if (holders.length === 0) {
-      setMessage("Personne n'a cette valeur. 🔥 HARDCORE : re-tirez !");
+      setMessage("Personne n'a cette valeur. 🔥 MODE HARDCORE ");
       setHardcoreMode(true);
       setPlayersWithCard([]);
       setCurrentGiverIndex(0);
@@ -241,11 +241,22 @@ const DonnePrendPhase = ({
       ) : !cardRevealed ? (
         <div className="panel">
           <div className="message">
-            1 carte par étape. Hardcore si personne n&apos;a la valeur.
+            Tire une carte. Mode Hardcore si personne n&apos;a la valeur.
           </div>
 
-          <button onClick={() => drawCard()} disabled={hasDrawnThisStep}>
-            🎴 Tirer une carte
+          <button
+            type="button"
+            className="draw-card"
+            onClick={() => drawCard()}
+            disabled={hasDrawnThisStep}
+            aria-label="Tirer une carte"
+          >
+            <img
+              className="draw-card__img"
+              src="/alex-croupier.png"
+              alt=""
+              draggable="false"
+            />
           </button>
         </div>
       ) : (
@@ -266,7 +277,7 @@ const DonnePrendPhase = ({
                     </div>
                     <div className="actions">
                       <button onClick={() => handleCulSec(giverIndex)}>
-                        ✅ J&apos;ai cul-sec
+                        ✅ J&apos;ai cul-sec JPP
                       </button>
                     </div>
                   </>
@@ -277,15 +288,10 @@ const DonnePrendPhase = ({
                 {currentGiver && (
                   <>
                     <div className="active-player">
-                      🎯 Donneur : {players[giverIndex]}
+                      🎯 {players[giverIndex]}
                     </div>
-
-                    <div className="counter">
-                      Doublons : {giverCopies} — Total à donner : {totalToGive}
-                      <br />
-                      🔥 Restantes : {remainingToGive}
-                    </div>
-
+                    <br />
+                    🔥 Restantes : {remainingToGive}
                     <div className="actions">
                       {players.map(
                         (name, index) =>
@@ -327,7 +333,19 @@ const DonnePrendPhase = ({
           ) : (
             hardcoreMode && (
               <div className="actions">
-                <button onClick={() => drawCard(true)}>
+                <button
+                  onClick={async () => {
+                    try {
+                      hardcoreSound.currentTime = 0;
+                      hardcoreSound.volume = 0.8;
+                      await hardcoreSound.play();
+                    } catch (e) {
+                      // ignore (autoplay block etc)
+                    }
+
+                    drawCard(true);
+                  }}
+                >
                   🔥 HARDCOOOOOOOOORE !
                 </button>
               </div>

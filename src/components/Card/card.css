@@ -42,16 +42,19 @@
   text-align: center;
   line-height: 1;
 }
+
 .card-slot {
   display: flex;
   justify-content: center;
   margin: 16px 0;
 }
+
 .card-caption {
   text-align: center;
   opacity: 0.8;
   margin-top: 8px;
 }
+
 /* ====== MINI CARD (recap) ====== */
 
 .cards-recap {
@@ -68,9 +71,9 @@
   width: clamp(44px, 9vw, 62px);
   height: clamp(62px, 13vw, 88px);
   background: white;
-  border: 1px solid rgba(0,0,0,0.15);
+  border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 10px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
   position: relative;
   flex: 0 0 auto;
 }
@@ -118,4 +121,18 @@
 
 .mini-suit {
   font-size: inherit;
+}
+
+/* ====== ajustment carte mode paysage ====== */
+
+@media (orientation: landscape) {
+  .playing-card {
+    width: 140px;
+    height: 210px;
+  }
+
+  .pc-center {
+    font-size: 56px;
+  }
+
 }

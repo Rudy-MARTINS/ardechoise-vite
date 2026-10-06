@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./app.css";
 import Card from "./components/Card/Card";
+import BoutonFaute from "./components/BoutonFaute/BoutonFaute";
 import MiniCard from "./components/Card/MiniCard";
 import DonnePrendPhase from "./components/DonnePrendPhase/DonnePrendPhase";
 
+const createEmptyPlayerCards = (count) =>
+  Array.from({ length: count }, () => []);
+
 function App() {
   const [numPlayers, setNumPlayers] = useState(2);
-  const [playerNames, setPlayerNames] = useState(Array(numPlayers).fill(""));
+  const [playerNames, setPlayerNames] = useState(Array(2).fill(""));
   const [startGame, setStartGame] = useState(false);
-  const [startSound] = useState(() => new Audio("/pop champ.wav"));
+  const startSoundRef = useRef(new Audio("/pop champ.wav"));
 
   const [currentPlayer, setCurrentPlayer] = useState(0);
   const [roundNumber, setRoundNumber] = useState(1);
@@ -17,12 +21,13 @@ function App() {
   const [currentCard, setCurrentCard] = useState(null);
   const [cardRevealed, setCardRevealed] = useState(false);
 
-  const [playerCards, setPlayerCards] = useState(Array(numPlayers).fill([]));
+  const [playerCards, setPlayerCards] = useState(createEmptyPlayerCards(2));
 
   const [gorgeesDistribuees, setGorgeesDistribuees] = useState(
-    Array(numPlayers).fill(0),
+    Array(2).fill(0),
   );
-  const [gorgeesRecues, setGorgeesRecues] = useState(Array(numPlayers).fill(0));
+  const [gorgeesRecues, setGorgeesRecues] = useState(Array(2).fill(0));
+  const [fautesDeJeu, setFautesDeJeu] = useState(Array(2).fill(0));
 
   const [showDistribution, setShowDistribution] = useState(false);
   const [gorgeesToDistribute, setGorgeesToDistribute] = useState(0);
@@ -34,6 +39,12 @@ function App() {
 
   const [showDonnePrendPhase, setShowDonnePrendPhase] = useState(false);
   const [deck, setDeck] = useState([]);
+
+  const [showFaultMenu, setShowFaultMenu] = useState(false);
+  const [faultToast, setFaultToast] = useState("");
+  const faultMenuRef = useRef(null);
+
+  const [actionLocked, setActionLocked] = useState(false);
 
   const suits = ["cœur", "carreau", "pique", "trèfle"];
 
@@ -72,6 +83,47 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        faultMenuRef.current &&
+        !faultMenuRef.current.contains(event.target)
+      ) {
+        setShowFaultMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!faultToast) return;
+
+    const timeout = setTimeout(() => {
+      setFaultToast("");
+    }, 3000);
+
+    return () => clearTimeout(timeout);
+  }, [faultToast]);
+
+  const withActionLock = (callback, delay = 450) => {
+    if (actionLocked) return;
+
+    setActionLocked(true);
+
+    try {
+      callback();
+    } finally {
+      setTimeout(() => {
+        setActionLocked(false);
+      }, delay);
+    }
+  };
+
   const initializeDeck = () => {
     const newDeck = [];
     suits.forEach((suit) => {
@@ -103,9 +155,10 @@ function App() {
     const value = parseInt(e.target.value, 10);
     setNumPlayers(value);
     setPlayerNames(Array(value).fill(""));
-    setPlayerCards(Array(value).fill([]));
+    setPlayerCards(createEmptyPlayerCards(value));
     setGorgeesDistribuees(Array(value).fill(0));
     setGorgeesRecues(Array(value).fill(0));
+    setFautesDeJeu(Array(value).fill(0));
   };
 
   const handlePlayerNameChange = (e, index) => {
@@ -114,46 +167,55 @@ function App() {
     setPlayerNames(newPlayerNames);
   };
 
-  const handleStartGame = async () => {
+  const handleStartGame = () => {
     if (!playerNames.every((name) => name.trim() !== "")) {
       alert("Veuillez remplir tous les noms des joueurs.");
       return;
     }
 
-    try {
-      startSound.currentTime = 0;
-      startSound.volume = 0.6;
-      await startSound.play();
-    } catch (e) {
-      // si iOS/Chrome bloque, le jeu démarre quand même
-    }
-
     setStartGame(true);
-    setMessage(`${playerNames[currentPlayer]} A toi de jouer !`);
+    setCurrentPlayer(0);
+    setMessage(`${playerNames[0]} à toi de jouer !`);
+
     const card = drawCard();
     setCurrentCard(card);
     setCardRevealed(false);
+
+    try {
+      const startSound = startSoundRef.current;
+      startSound.currentTime = 0;
+      startSound.volume = 0.6;
+      startSound.play().catch(() => {});
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const toggleFault = () => {
+    setShowFaultMenu((prev) => !prev);
   };
 
   const handlePlayerGuess = (guess) => {
-    setCardRevealed(true);
+    withActionLock(() => {
+      setCardRevealed(true);
 
-    switch (roundNumber) {
-      case 1:
-        handleColorGuess(guess);
-        break;
-      case 2:
-        handleComparisonGuess(guess);
-        break;
-      case 3:
-        handleInsideOutsideGuess(guess);
-        break;
-      case 4:
-        handleSuitGuess(guess);
-        break;
-      default:
-        break;
-    }
+      switch (roundNumber) {
+        case 1:
+          handleColorGuess(guess);
+          break;
+        case 2:
+          handleComparisonGuess(guess);
+          break;
+        case 3:
+          handleInsideOutsideGuess(guess);
+          break;
+        case 4:
+          handleSuitGuess(guess);
+          break;
+        default:
+          break;
+      }
+    });
   };
 
   const handleColorGuess = (guess) => {
@@ -208,13 +270,21 @@ function App() {
 
   const handleInsideOutsideGuess = (guess) => {
     const cards = playerCards[currentPlayer];
+    const values = cards.map((c) => c.value);
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+
+    const isEqual =
+      currentCard.value === minValue || currentCard.value === maxValue;
     const isInside =
-      currentCard.value > Math.min(...cards.map((c) => c.value)) &&
-      currentCard.value < Math.max(...cards.map((c) => c.value));
+      currentCard.value > minValue && currentCard.value < maxValue;
+    const isOutside =
+      currentCard.value < minValue || currentCard.value > maxValue;
 
     const ok =
       (guess === "intérieur" && isInside) ||
-      (guess === "extérieur" && !isInside);
+      (guess === "extérieur" && isOutside) ||
+      (guess === "égale" && isEqual);
 
     if (ok) {
       setMessage(
@@ -258,11 +328,15 @@ function App() {
   };
 
   const handleNextTurn = () => {
-    setWaitingForConfirmation(false);
-    nextTurn();
+    withActionLock(() => {
+      setWaitingForConfirmation(false);
+      nextTurn();
+    });
   };
 
   const distributeGorgees = (toPlayer, amount) => {
+    if (actionLocked) return;
+
     const newSplit = [...splitGorgees, { toPlayer, amount }];
     const totalDistributed = newSplit.reduce(
       (total, entry) => total + entry.amount,
@@ -277,6 +351,8 @@ function App() {
     }
 
     if (totalDistributed === gorgeesToDistribute) {
+      setActionLocked(true);
+
       const newDistrib = [...gorgeesDistribuees];
       const newRecues = [...gorgeesRecues];
 
@@ -289,7 +365,12 @@ function App() {
       setGorgeesRecues(newRecues);
       setShowDistribution(false);
       setSplitGorgees([]);
+
       nextTurn();
+
+      setTimeout(() => {
+        setActionLocked(false);
+      }, 450);
     } else {
       setSplitGorgees(newSplit);
     }
@@ -317,10 +398,9 @@ function App() {
     setCurrentCard(newCard);
     setCardRevealed(false);
     setCurrentPlayer(nextPlayer);
-    setMessage(`${playerNames[nextPlayer]}, à toi de jouer.`);
+    setMessage(`${playerNames[nextPlayer]} à toi de jouer.`);
   };
 
-  // ✅ Donne/Prend utilise ça
   const applyGorgees = ({ type, fromPlayer, toPlayer, amount }) => {
     if (amount <= 0) return;
 
@@ -347,19 +427,38 @@ function App() {
     }
   };
 
-  // Compteur dynamique (phase 1)
-  const distributedSoFar = splitGorgees.reduce(
-    (total, entry) => total + entry.amount,
-    0,
-  );
-  const remainingToDistribute = gorgeesToDistribute - distributedSoFar;
+  const applyFault = (playerIndex, amount = 1) => {
+    if (amount <= 0) return;
+
+    setFautesDeJeu((prev) => {
+      const next = [...prev];
+      next[playerIndex] += amount;
+      return next;
+    });
+
+    setGorgeesRecues((prev) => {
+      const next = [...prev];
+      next[playerIndex] += amount;
+      return next;
+    });
+
+    const faultMessage = `${playerNames[playerIndex]} prend ${amount} gorgée(s) pour faute de jeu.`;
+
+    setFaultToast(faultMessage);
+    setShowFaultMenu(false);
+  };
+
+  const remainingToDistribute =
+    gorgeesToDistribute -
+    splitGorgees.reduce((total, entry) => total + entry.amount, 0);
 
   const renderRecap = () => {
     return playerNames.map((name, index) => (
       <div key={index}>
         <p>
-          {name} a distribué {gorgeesDistribuees[index]} gorgées et a bu{" "}
-          {gorgeesRecues[index]} gorgées. "bande gros de sacs"
+          {name} a distribué {gorgeesDistribuees[index]} gorgées, a bu{" "}
+          {gorgeesRecues[index]} gorgées, dont {fautesDeJeu[index]} faute(s) de
+          jeu.
         </p>
         <p>
           Cartes tirées :{" "}
@@ -380,6 +479,26 @@ function App() {
     <div className="App">
       {startGame ? (
         <div className="game">
+          <div className="fault-panel" ref={faultMenuRef}>
+            {faultToast && <div className="fault-toast">{faultToast}</div>}
+
+            {showFaultMenu && (
+              <div className="fault-actions">
+                {playerNames.map((name, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => applyFault(index, 1)}
+                  >
+                    +1 faute pour {name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <BoutonFaute onClick={toggleFault} />
+          </div>
+
           {showDonnePrendPhase ? (
             <DonnePrendPhase
               players={playerNames}
@@ -393,189 +512,250 @@ function App() {
               }}
             />
           ) : showRecap ? (
-            <div>
-              <h2>Récapitulatif final</h2>
-              {renderRecap()}
-              <button onClick={handleStartDonnePrendPhase}>
-                Commencer Donne / Prend
-              </button>
+            <div className="play-screen play-screen--centered">
+              <div className="play-screen__header">
+                <h2>Récapitulatif final</h2>
+              </div>
+
+              <div className="play-screen__body play-screen__body--single">
+                <div className="play-screen__media">{renderRecap()}</div>
+                <div className="play-screen__actions">
+                  <div className="play-screen__action-buttons">
+                    <button onClick={handleStartDonnePrendPhase}>
+                      Commencer Donne / Prend
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : showIntermediatePage ? (
-            <div>
-              <h2>La première phase de jeu est terminée !</h2>
-              <p>
-                Vous pouvez reposer vos foies... Mais pas trop longtemps car la
-                suite arrive !
-              </p>
-              <button onClick={handleContinueToRecap}>
-                Passer au récap provisoire avant la suite
-              </button>
+            <div className="play-screen play-screen--centered">
+              <div className="play-screen__header">
+                <h2>La première phase de jeu est terminée !</h2>
+                <p>
+                  Vous pouvez reposer vos foies... Mais pas trop longtemps car
+                  la suite arrive !
+                </p>
+              </div>
+
+              <div className="play-screen__body play-screen__body--single">
+                <div className="play-screen__actions">
+                  <div className="play-screen__action-buttons">
+                    <button onClick={handleContinueToRecap}>
+                      Passer au récap provisoire avant la suite
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
-            <div>
-              <h2>{message}</h2>
+            <div className="play-screen">
+              <div className="play-screen__header">
+                <h2>{message}</h2>
+              </div>
 
-              {cardRevealed && currentCard && (
-                <>
-                  <div className="card-slot">
-                    <Card card={currentCard} />
-                  </div>
-                  <p className="card-caption">
-                    {getCardValue(currentCard.value)} de{" "}
-                    {getSymbolForSuit(currentCard.suit)}
-                  </p>
-                </>
-              )}
+              <div
+                className={`play-screen__body ${
+                  playerCards[currentPlayer].length === 0 && !cardRevealed
+                    ? "play-screen__body--no-media"
+                    : ""
+                } ${
+                  roundNumber === 2 && cardRevealed && waitingForConfirmation
+                    ? "play-screen__body--round2-postclick"
+                    : ""
+                }`}
+              >
+                <div className="play-screen__media">
+                  {playerCards[currentPlayer].length > 0 && (
+                    <div className="play-screen__recap">
+                      <h3>Cartes tirées par {playerNames[currentPlayer]}</h3>
+                      <div className="cards-recap">
+                        {playerCards[currentPlayer].map((card, index) => (
+                          <MiniCard
+                            key={`${card.value}-${card.suit}-${index}`}
+                            card={card}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-              {playerCards[currentPlayer].length > 0 && (
-                <div>
-                  <h3>Cartes tirées par {playerNames[currentPlayer]}</h3>
-
-                  <div className="cards-recap">
-                    {playerCards[currentPlayer].map((card, index) => (
-                      <MiniCard
-                        key={`${card.value}-${card.suit}-${index}`}
-                        card={card}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {roundNumber === 1 && !showDistribution && !cardRevealed && (
-                <div>
-                  <h3>Devine si la carte est rouge ou noire</h3>
-                  <div className="choice-container choice-2">
-                    <button
-                      className="btn-rge"
-                      onClick={() => handlePlayerGuess("rouge")}
-                    >
-                      Rouge
-                    </button>
-                    <button
-                      className="btn-noir"
-                      onClick={() => handlePlayerGuess("noir")}
-                    >
-                      Noir
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {roundNumber === 2 && !showDistribution && !cardRevealed && (
-                <div>
-                  <h3>
-                    Devine si la carte est supérieure, inférieure ou égale à la
-                    première
-                  </h3>
-                  <div className="choice-container choice-3">
-                    <button
-                      className="btn-sup"
-                      onClick={() => handlePlayerGuess("supérieure")}
-                    >
-                      Supérieure
-                    </button>
-                    <button
-                      className="btn-inf"
-                      onClick={() => handlePlayerGuess("inférieure")}
-                    >
-                      Inférieure
-                    </button>
-                    <button
-                      className="btn-egal"
-                      onClick={() => handlePlayerGuess("égale")}
-                    >
-                      Égale
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {roundNumber === 3 && !showDistribution && !cardRevealed && (
-                <div>
-                  <h3>
-                    Devine si la valeur de la carte est à l'intérieur ou à
-                    l'extérieur des cartes précédentes
-                  </h3>
-                  <h4>l'AS est la valeur la plus haute</h4>
-                  <div className="choice-container choice-2">
-                    <button
-                      className="btn-int"
-                      onClick={() => handlePlayerGuess("intérieur")}
-                    >
-                      À l'intérieur
-                    </button>
-                    <button
-                      className="btn-ext"
-                      onClick={() => handlePlayerGuess("extérieur")}
-                    >
-                      À l'extérieur
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {roundNumber === 4 && !showDistribution && !cardRevealed && (
-                <div>
-                  <h3>Devine la forme de la carte</h3>
-                  <div className="choice-container choice-4">
-                    <button
-                      className="coeur"
-                      onClick={() => handlePlayerGuess("cœur")}
-                    >
-                      Cœur
-                    </button>
-                    <button
-                      className="carreau"
-                      onClick={() => handlePlayerGuess("carreau")}
-                    >
-                      Carreau (les vrais savent)
-                    </button>
-                    <button
-                      className="pique"
-                      onClick={() => handlePlayerGuess("pique")}
-                    >
-                      Pique
-                    </button>
-                    <button
-                      className="trefle"
-                      onClick={() => handlePlayerGuess("trefle")}
-                    >
-                      Trèfle
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {showDistribution && (
-                <div>
-                  <h3>
-                    Distribuez vos gorgées ({remainingToDistribute} restante(s)
-                    sur {gorgeesToDistribute})
-                  </h3>
-
-                  {playerNames.map(
-                    (name, index) =>
-                      index !== currentPlayer && (
-                        <button
-                          key={index}
-                          onClick={() => distributeGorgees(index, 1)}
-                          disabled={remainingToDistribute <= 0}
-                        >
-                          Donner une gorgée à {name}
-                        </button>
-                      ),
+                  {cardRevealed && currentCard && roundNumber === 1 && (
+                    <div className="card-slot card-slot--left">
+                      <Card card={currentCard} />
+                    </div>
                   )}
                 </div>
-              )}
 
-              {waitingForConfirmation && (
-                <div>
-                  <button onClick={handleNextTurn}>
-                    J'ai bu, tour suivant
-                  </button>
+                <div className="play-screen__actions">
+                  {cardRevealed && currentCard && roundNumber !== 1 && (
+                    <div className="card-slot card-slot--right">
+                      <Card card={currentCard} />
+                    </div>
+                  )}
+
+                  {roundNumber === 1 && !showDistribution && !cardRevealed && (
+                    <div className="play-block">
+                      <h3>Devine si la carte est rouge ou noire</h3>
+                      <div className="choice-container choice-2">
+                        <button
+                          className="btn-rge"
+                          onClick={() => handlePlayerGuess("rouge")}
+                          disabled={actionLocked}
+                        >
+                          Rouge
+                        </button>
+                        <button
+                          className="btn-noir"
+                          onClick={() => handlePlayerGuess("noir")}
+                          disabled={actionLocked}
+                        >
+                          Noir
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {roundNumber === 2 && !showDistribution && !cardRevealed && (
+                    <div className="play-block play-block--round2">
+                      <h3>
+                        Devine si la carte est supérieure, inférieure ou égale à
+                        la première
+                      </h3>
+                      <div className="choice-container choice-3 choice-3-vertical">
+                        <button
+                          className="btn-sup"
+                          onClick={() => handlePlayerGuess("supérieure")}
+                          disabled={actionLocked}
+                        >
+                          Supérieure
+                        </button>
+                        <button
+                          className="btn-inf"
+                          onClick={() => handlePlayerGuess("inférieure")}
+                          disabled={actionLocked}
+                        >
+                          Inférieure
+                        </button>
+                        <button
+                          className="btn-egal"
+                          onClick={() => handlePlayerGuess("égale")}
+                          disabled={actionLocked}
+                        >
+                          Égale
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {roundNumber === 3 && !showDistribution && !cardRevealed && (
+                    <div className="play-block">
+                      <h3>
+                        Devine si la valeur de la carte est à l&apos;intérieur
+                        ou à l&apos;extérieur des cartes précédentes
+                      </h3>
+                      <h4>l&apos;AS est la valeur la plus haute</h4>
+                      <div className="choice-container choice-3 choice-3-round3">
+                        <button
+                          className="btn-int"
+                          onClick={() => handlePlayerGuess("intérieur")}
+                          disabled={actionLocked}
+                        >
+                          À l&apos;intérieur
+                        </button>
+                        <button
+                          className="btn-ext"
+                          onClick={() => handlePlayerGuess("extérieur")}
+                          disabled={actionLocked}
+                        >
+                          À l&apos;extérieur
+                        </button>
+                        <button
+                          className="btn-egal"
+                          onClick={() => handlePlayerGuess("égale")}
+                          disabled={actionLocked}
+                        >
+                          Égale
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {roundNumber === 4 && !showDistribution && !cardRevealed && (
+                    <div className="play-block">
+                      <h3>Devine la forme de la carte</h3>
+                      <div className="choice-container choice-4">
+                        <button
+                          className="coeur"
+                          onClick={() => handlePlayerGuess("cœur")}
+                          disabled={actionLocked}
+                        >
+                          Cœur
+                        </button>
+                        <button
+                          className="carreau"
+                          onClick={() => handlePlayerGuess("carreau")}
+                          disabled={actionLocked}
+                        >
+                          Carreau
+                        </button>
+                        <button
+                          className="pique"
+                          onClick={() => handlePlayerGuess("pique")}
+                          disabled={actionLocked}
+                        >
+                          Pique
+                        </button>
+                        <button
+                          className="trefle"
+                          onClick={() => handlePlayerGuess("trèfle")}
+                          disabled={actionLocked}
+                        >
+                          Trèfle
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {showDistribution && (
+                    <div className="show-distribution play-block">
+                      <h3>
+                        Distribuez vos gorgées ({remainingToDistribute}{" "}
+                        restante(s) sur {gorgeesToDistribute})
+                      </h3>
+
+                      <div className="play-screen__action-buttons">
+                        {playerNames.map(
+                          (name, index) =>
+                            index !== currentPlayer && (
+                              <button
+                                key={index}
+                                onClick={() => distributeGorgees(index, 1)}
+                                disabled={
+                                  remainingToDistribute <= 0 || actionLocked
+                                }
+                              >
+                                Donner une gorgée à {name}
+                              </button>
+                            ),
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {waitingForConfirmation && (
+                    <div className="waiting-confirmation play-block">
+                      <div className="play-screen__action-buttons">
+                        <button
+                          onClick={handleNextTurn}
+                          disabled={actionLocked}
+                        >
+                          J&apos;ai bu, tour suivant
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>
@@ -592,10 +772,10 @@ function App() {
               </div>
 
               <h3 className="citation">
-                Pour les gens qu'on pas peur de boire... de l'eau
+                Pour les gens qu&apos;on pas peur de boire... de l&apos;eau
               </h3>
               <h4 className="jcvd">
-                " Dans 20 - 30 ans y en aura plus " - JCVD
+                &quot; Dans 20 - 30 ans y en aura plus &quot; - JCVD
               </h4>
             </div>
 

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import Card from "../Card/Card";
+import DistributionGorgees from "../DistributionGorgees/DistributionGorgees";
 import "./DonnePrendPhase.css";
 
 const DonnePrendPhase = ({
@@ -8,12 +9,13 @@ const DonnePrendPhase = ({
   setDeck,
   playerCards,
   updateGorgees,
+  onDistributionChange,
   onFinish,
 }) => {
   const [currentRound, setCurrentRound] = useState(1);
   const [phaseDonne, setPhaseDonne] = useState(true);
   const [mode, setMode] = useState("NORMAL");
-  const hardcoreSoundRef = useRef(new Audio("/hardcore.wav"));
+  const hardcoreSoundRef = useRef(null);
 
   const [currentCard, setCurrentCard] = useState(null);
   const [cardRevealed, setCardRevealed] = useState(false);
@@ -28,6 +30,17 @@ const DonnePrendPhase = ({
 
   const [transitionLock, setTransitionLock] = useState(false);
   const [actionLock, setActionLock] = useState(false);
+  const actionLockRef = useRef(false);
+
+  const lockAction = () => {
+    actionLockRef.current = true;
+    setActionLock(true);
+  };
+
+  const unlockAction = () => {
+    actionLockRef.current = false;
+    setActionLock(false);
+  };
 
   const currentGiver = playersWithCard[currentGiverIndex];
   const giverIndex = currentGiver?.playerIndex;
@@ -63,6 +76,7 @@ const DonnePrendPhase = ({
   };
 
   const resetForNextStep = () => {
+    onDistributionChange?.(false);
     setPendingSplit({});
     setCardRevealed(false);
     setHasDrawnThisStep(false);
@@ -71,17 +85,19 @@ const DonnePrendPhase = ({
     setCurrentGiverIndex(0);
     setMessage("");
     setCurrentCard(null);
-    setActionLock(false);
+    unlockAction();
   };
 
   const drawCard = (isHardcore = false) => {
-    if (actionLock && !isHardcore) return;
+    if (actionLockRef.current && !isHardcore) return;
     if (hasDrawnThisStep && !isHardcore) return;
 
     if (!remainingDeck || remainingDeck.length === 0) {
       setMessage("Le deck est vide : fin de la phase.");
       return;
     }
+
+    if (!isHardcore) lockAction();
 
     let newDeck = [...remainingDeck];
     let card;
@@ -103,6 +119,9 @@ const DonnePrendPhase = ({
     setMessage("");
 
     const holders = computeHolders(card);
+    onDistributionChange?.(
+      mode === "NORMAL" && phaseDonne && holders.length > 0,
+    );
 
     if (holders.length === 0) {
       setMessage("Personne n'a cette valeur. 🔥 MODE HARDCORE");
@@ -114,6 +133,8 @@ const DonnePrendPhase = ({
       setPlayersWithCard(holders);
       setCurrentGiverIndex(0);
     }
+
+    if (!isHardcore) setTimeout(unlockAction, 0);
   };
 
   const handleNextPhase = () => {
@@ -147,13 +168,13 @@ const DonnePrendPhase = ({
   };
 
   const handleDistributeOne = (toPlayer) => {
-    if (actionLock) return;
+    if (actionLockRef.current) return;
     if (mode !== "NORMAL") return;
     if (!phaseDonne) return;
     if (giverIndex === undefined) return;
     if (remainingToGive <= 0) return;
 
-    setActionLock(true);
+    lockAction();
 
     addToPendingSplit(toPlayer);
 
@@ -172,26 +193,27 @@ const DonnePrendPhase = ({
       if (currentGiverIndex < playersWithCard.length - 1) {
         setCurrentGiverIndex((i) => i + 1);
         setMessage("✅ Joueur suivant !");
-        setTimeout(() => setActionLock(false), 120);
+        setTimeout(unlockAction, 0);
       } else {
+        onDistributionChange?.(false);
         setMessage("✅ Distribution terminée.");
-        setTimeout(() => handleNextPhase(), 800);
+        setTimeout(() => handleNextPhase(), 0);
       }
     } else {
       setMessage(
         `${players[giverIndex]} donne 1 gorgée à ${players[toPlayer]} — reste ${newRemaining}`,
       );
-      setTimeout(() => setActionLock(false), 120);
+      setTimeout(unlockAction, 0);
     }
   };
 
   const handleDrinkGorgee = (playerIndex) => {
-    if (actionLock) return;
+    if (actionLockRef.current) return;
     if (mode !== "NORMAL") return;
     if (phaseDonne) return;
     if (giverIndex === undefined) return;
 
-    setActionLock(true);
+    lockAction();
 
     const amountToDrink = currentRound * giverCopies;
 
@@ -205,17 +227,17 @@ const DonnePrendPhase = ({
 
     if (currentGiverIndex < playersWithCard.length - 1) {
       setCurrentGiverIndex((i) => i + 1);
-      setTimeout(() => setActionLock(false), 120);
+      setTimeout(unlockAction, 0);
     } else {
-      setTimeout(() => handleNextPhase(), 800);
+      setTimeout(() => handleNextPhase(), 0);
     }
   };
 
   const handleCulSec = (playerIndex) => {
-    if (actionLock) return;
+    if (actionLockRef.current) return;
     if (giverIndex === undefined) return;
 
-    setActionLock(true);
+    lockAction();
 
     updateGorgees({
       type: "DRINK",
@@ -227,9 +249,9 @@ const DonnePrendPhase = ({
 
     if (currentGiverIndex < playersWithCard.length - 1) {
       setCurrentGiverIndex((i) => i + 1);
-      setTimeout(() => setActionLock(false), 120);
+      setTimeout(unlockAction, 0);
     } else {
-      setTimeout(() => handleNextPhase(), 900);
+      setTimeout(() => handleNextPhase(), 0);
     }
   };
 
@@ -242,12 +264,42 @@ const DonnePrendPhase = ({
       : `🍺 Prends ${currentRound} gorgée${currentRound > 1 ? "s" : ""}`;
   })();
 
+  const feedback = (
+    <>
+      {message && <div className="message">{message}</div>}
+      {mode !== "END" && !cardRevealed && (
+        <div className="message">
+          Tire une carte. Mode Hardcore si personne n&apos;a la valeur.
+        </div>
+      )}
+    </>
+  );
+
+  if (mode === "NORMAL" && phaseDonne && cardRevealed && currentGiver) {
+    return (
+      <DistributionGorgees
+        roundNumber={currentRound}
+        message={message}
+        card={currentCard}
+        players={players}
+        giverIndex={giverIndex}
+        giverCopies={giverCopies}
+        remaining={remainingToGive}
+        pendingSplit={pendingSplit}
+        actionLocked={actionLock}
+        onDistribute={handleDistributeOne}
+      />
+    );
+  }
+
   return (
     <div className="donne-prend-phase">
-      <div className="dp-screen">
+      <div className={`dp-screen${mode !== "END" ? " dp-screen--split" : ""}`}>
         <div className="dp-screen__header">
           <h2>{phaseTitle}</h2>
-          {message && <div className="message">{message}</div>}
+          <div className="dp-screen__feedback dp-screen__feedback--portrait">
+            {feedback}
+          </div>
         </div>
 
         {mode === "END" ? (
@@ -267,10 +319,6 @@ const DonnePrendPhase = ({
         ) : !cardRevealed ? (
           <div className="dp-screen__body">
             <div className="dp-screen__media">
-              <div className="message">
-                Tire une carte. Mode Hardcore si personne n&apos;a la valeur.
-              </div>
-
               <button
                 type="button"
                 className="draw-card"
@@ -287,7 +335,11 @@ const DonnePrendPhase = ({
               </button>
             </div>
 
-            <div className="dp-screen__actions" />
+            <div className="dp-screen__actions dp-screen__right-pane">
+              <div className="dp-screen__feedback dp-screen__feedback--landscape">
+                {feedback}
+              </div>
+            </div>
           </div>
         ) : (
           <div className="dp-screen__body">
@@ -299,7 +351,10 @@ const DonnePrendPhase = ({
               )}
             </div>
 
-            <div className="dp-screen__actions">
+            <div className="dp-screen__actions dp-screen__right-pane">
+              <div className="dp-screen__feedback dp-screen__feedback--landscape">
+                {feedback}
+              </div>
               {playersWithCard.length > 0 ? (
                 mode === "CULSEC" ? (
                   currentGiver && (
@@ -314,37 +369,6 @@ const DonnePrendPhase = ({
                         >
                           ✅ J&apos;ai cul-sec JPP
                         </button>
-                      </div>
-                    </div>
-                  )
-                ) : phaseDonne ? (
-                  currentGiver && (
-                    <div className="dp-block">
-                      <div className="active-player">
-                        🎯 {players[giverIndex]}
-                        {giverCopies > 1 ? ` (x${giverCopies})` : ""}
-                      </div>
-
-                      <div className="counter">
-                        🔥 Restantes : {remainingToGive}
-                      </div>
-
-                      <div className="actions">
-                        {players.map(
-                          (name, index) =>
-                            index !== giverIndex && (
-                              <button
-                                key={index}
-                                onClick={() => handleDistributeOne(index)}
-                                disabled={remainingToGive <= 0 || actionLock}
-                              >
-                                Donner une gorgée à {name}
-                                {pendingSplit[index]
-                                  ? ` (déjà ${pendingSplit[index]})`
-                                  : ""}
-                              </button>
-                            ),
-                        )}
                       </div>
                     </div>
                   )
@@ -377,21 +401,25 @@ const DonnePrendPhase = ({
                     <div className="actions">
                       <button
                         disabled={actionLock}
-                        onClick={async () => {
-                          if (actionLock) return;
-                          setActionLock(true);
+                        onClick={() => {
+                          if (actionLockRef.current) return;
+                          lockAction();
+
+                          drawCard(true);
 
                           try {
+                            if (!hardcoreSoundRef.current) {
+                              hardcoreSoundRef.current = new Audio("/hardcore.wav");
+                            }
                             const hardcoreSound = hardcoreSoundRef.current;
                             hardcoreSound.currentTime = 0;
                             hardcoreSound.volume = 0.8;
-                            await hardcoreSound.play();
-                          } catch (e) {
+                            hardcoreSound.play().catch(() => {});
+                          } catch {
                             // ignore autoplay block etc.
                           }
 
-                          drawCard(true);
-                          setTimeout(() => setActionLock(false), 200);
+                          setTimeout(unlockAction, 0);
                         }}
                       >
                         🔥 HARDCOOOOOOOOORE !

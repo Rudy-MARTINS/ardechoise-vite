@@ -428,6 +428,36 @@ textarea {
   align-items: center;
 }
 
+@media (orientation: portrait) {
+  .play-screen--intermediate {
+    min-height: calc(100dvh - 16px - 170px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    gap: 24px;
+  }
+
+  .play-screen--intermediate .play-screen__header {
+    margin-bottom: 0;
+  }
+
+  .play-screen--intermediate .play-screen__body {
+    width: 100%;
+  }
+
+  .play-screen--intermediate .play-screen__action-buttons {
+    width: 100%;
+  }
+
+  .play-screen--intermediate .play-screen__action-buttons button {
+    min-width: 0;
+    width: min(100%, 360px);
+    max-width: 100%;
+    white-space: normal;
+    line-height: 1.25;
+  }
+}
+
 /* =========================
    BLOC D'UNE PHRASE / CONSIGNE DE JEU
 ========================= */
@@ -808,6 +838,29 @@ textarea {
   .game {
     min-height: 100dvh;
     padding: 8px 14px 110px;
+  }
+
+  .play-screen--intermediate {
+    min-height: calc(100dvh - 8px - 110px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    gap: clamp(12px, 4dvh, 24px);
+  }
+
+  .play-screen--intermediate .play-screen__header {
+    margin-bottom: 0;
+  }
+
+  .play-screen--intermediate .play-screen__body {
+    width: 100%;
+  }
+
+  .play-screen--intermediate .play-screen__action-buttons button {
+    min-width: 0;
+    max-width: min(100%, 360px);
+    white-space: normal;
+    line-height: 1.25;
   }
 
   .play-screen__header {

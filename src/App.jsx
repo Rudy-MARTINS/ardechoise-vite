@@ -4,6 +4,7 @@ import Card from "./components/Card/Card";
 import BoutonFaute from "./components/BoutonFaute/BoutonFaute";
 import MiniCard from "./components/Card/MiniCard";
 import DonnePrendPhase from "./components/DonnePrendPhase/DonnePrendPhase";
+import DistributionGorgees from "./components/DistributionGorgees/DistributionGorgees";
 
 const createEmptyPlayerCards = (count) =>
   Array.from({ length: count }, () => []);
@@ -38,6 +39,7 @@ function App() {
   const [showRecap, setShowRecap] = useState(false);
 
   const [showDonnePrendPhase, setShowDonnePrendPhase] = useState(false);
+  const [isDonnePrendDistributing, setIsDonnePrendDistributing] = useState(false);
   const [deck, setDeck] = useState([]);
 
   const [showFaultMenu, setShowFaultMenu] = useState(false);
@@ -45,6 +47,10 @@ function App() {
   const faultMenuRef = useRef(null);
 
   const [actionLocked, setActionLocked] = useState(false);
+
+  const isDistributing = showDistribution || isDonnePrendDistributing;
+  const isRecapVisible = showRecap && !showDonnePrendPhase;
+  const showFaultControls = !isDistributing && !isRecapVisible;
 
   const suits = ["cœur", "carreau", "pique", "trèfle"];
 
@@ -227,6 +233,7 @@ function App() {
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
+      setShowFaultMenu(false);
       setShowDistribution(true);
       return;
     }
@@ -255,6 +262,7 @@ function App() {
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
+      setShowFaultMenu(false);
       setShowDistribution(true);
       return;
     }
@@ -292,6 +300,7 @@ function App() {
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
+      setShowFaultMenu(false);
       setShowDistribution(true);
       return;
     }
@@ -314,6 +323,7 @@ function App() {
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
+      setShowFaultMenu(false);
       setShowDistribution(true);
       return;
     }
@@ -452,6 +462,15 @@ function App() {
     gorgeesToDistribute -
     splitGorgees.reduce((total, entry) => total + entry.amount, 0);
 
+  const pendingDistribution = splitGorgees.reduce((split, { toPlayer, amount }) => {
+    split[toPlayer] = (split[toPlayer] || 0) + amount;
+    return split;
+  }, {});
+  const lastDistribution = splitGorgees[splitGorgees.length - 1];
+  const distributionMessage = lastDistribution
+    ? `${playerNames[currentPlayer]} donne ${lastDistribution.amount} gorgée à ${playerNames[lastDistribution.toPlayer]} — reste ${remainingToDistribute}`
+    : "";
+
   const renderRecap = () => {
     return playerNames.map((name, index) => (
       <div key={index}>
@@ -472,7 +491,10 @@ function App() {
     ));
   };
 
-  const handleContinueToRecap = () => setShowRecap(true);
+  const handleContinueToRecap = () => {
+    setShowFaultMenu(false);
+    setShowRecap(true);
+  };
   const handleStartDonnePrendPhase = () => setShowDonnePrendPhase(true);
 
   return (
@@ -480,9 +502,11 @@ function App() {
       {startGame ? (
         <div className="game">
           <div className="fault-panel" ref={faultMenuRef}>
-            {faultToast && <div className="fault-toast">{faultToast}</div>}
+            {!isRecapVisible && faultToast && (
+              <div className="fault-toast">{faultToast}</div>
+            )}
 
-            {showFaultMenu && (
+            {showFaultControls && showFaultMenu && (
               <div className="fault-actions">
                 {playerNames.map((name, index) => (
                   <button
@@ -496,7 +520,7 @@ function App() {
               </div>
             )}
 
-            <BoutonFaute onClick={toggleFault} />
+            {showFaultControls && <BoutonFaute onClick={toggleFault} />}
           </div>
 
           {showDonnePrendPhase ? (
@@ -506,6 +530,10 @@ function App() {
               setDeck={setDeck}
               playerCards={playerCards}
               updateGorgees={applyGorgees}
+              onDistributionChange={(isDistributing) => {
+                setIsDonnePrendDistributing(isDistributing);
+                if (isDistributing) setShowFaultMenu(false);
+              }}
               onFinish={(action) => {
                 if (action === "RESTART") window.location.reload();
                 if (action === "HOME") window.location.reload();
@@ -529,7 +557,7 @@ function App() {
               </div>
             </div>
           ) : showIntermediatePage ? (
-            <div className="play-screen play-screen--centered">
+            <div className="play-screen play-screen--centered play-screen--intermediate">
               <div className="play-screen__header">
                 <h2>La première phase de jeu est terminée !</h2>
                 <p>
@@ -548,6 +576,18 @@ function App() {
                 </div>
               </div>
             </div>
+          ) : showDistribution ? (
+            <DistributionGorgees
+              roundNumber={roundNumber}
+              message={distributionMessage}
+              card={currentCard}
+              players={playerNames}
+              giverIndex={currentPlayer}
+              remaining={remainingToDistribute}
+              pendingSplit={pendingDistribution}
+              actionLocked={actionLocked}
+              onDistribute={(index) => distributeGorgees(index, 1)}
+            />
           ) : (
             <div className="play-screen">
               <div className="play-screen__header">
@@ -712,32 +752,6 @@ function App() {
                         >
                           Trèfle
                         </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {showDistribution && (
-                    <div className="show-distribution play-block">
-                      <h3>
-                        Distribuez vos gorgées ({remainingToDistribute}{" "}
-                        restante(s) sur {gorgeesToDistribute})
-                      </h3>
-
-                      <div className="play-screen__action-buttons">
-                        {playerNames.map(
-                          (name, index) =>
-                            index !== currentPlayer && (
-                              <button
-                                key={index}
-                                onClick={() => distributeGorgees(index, 1)}
-                                disabled={
-                                  remainingToDistribute <= 0 || actionLocked
-                                }
-                              >
-                                Donner une gorgée à {name}
-                              </button>
-                            ),
-                        )}
                       </div>
                     </div>
                   )}

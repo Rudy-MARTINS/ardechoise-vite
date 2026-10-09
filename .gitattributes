@@ -1,0 +1,4 @@
+android/gradlew text eol=lf
+android/gradlew.bat text eol=crlf
+# Preserve the upstream font license and its documented checksum exactly.
+assets/android/fonts/OFL.txt -text -whitespace

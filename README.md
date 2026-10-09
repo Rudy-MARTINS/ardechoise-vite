@@ -1,84 +1,74 @@
-# React + Vite
+# L'Ardéchoise
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Jeu de cartes entre amis et mini-site officiel de téléchargement Android, en React/Vite. Le jeu reste à sa place d'origine ; le site dédié présente L'Ardéchoise et propose la dernière APK publiée sur GitHub Releases, sans accès au jeu en ligne.
 
-Currently, two official plugins are available:
+## Développement
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Node 20.19+ ou 22.12+ et npm sont nécessaires. Pour une nouvelle installation, utiliser Node 22 ou une version LTS compatible plus récente.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-
-## Build android
-
-### Pre-requis
-
-1. Install Android-Studio and configure the variable environnement:
-    For Linux:
-    ```
-    export CAPACITOR_ANDROID_STUDIO_PATH="/opt/android-studio-for-platform/bin/studio.sh"
-    ```
-    For Windows:
-    ```
-
-    ```
-2.  Install capacitor:
-    ```
-    npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/app @capacitor/haptics @capacitor/keyboard @capacitor/status-bar
-    ```
-
-### Init capacitor
-
-init capacitor:
-```
-    npx cap init
+```powershell
+npm ci
+npm run dev
 ```
 
-Add capabilities android:
-``` 
-    npx cap add android
+- `http://localhost:5173/` : jeu existant, pour le développement.
+- `npm run dev:site` puis `http://localhost:5174/` : mini-site indépendant.
+
+Dans cet aperçu du mini-site, les boutons Android téléchargent l'APK locale de `releases/` lorsque son fichier `.sha256` correspond. Ce service existe uniquement avec `dev:site` : aucune APK n'est copiée dans `site/public/` ou `dist-site/`. Le compteur reste celui de GitHub Releases et ne compte pas ces téléchargements locaux.
+
+Les règles et les phases du jeu sont conservées. Le mini-site utilise le logo et Alex déjà présents dans `public/` et montre uniquement un aperçu CUL SEC.
+
+## Vérifications et builds
+
+```powershell
+npm test
+npm run lint
+npm run build
+npm run build:site
+npm run build:pages
+npm run build:android
 ```
 
-**Never used**  but add ios capabilities:
+| Commande | Résultat |
+| --- | --- |
+| `npm run build` | Jeu d'origine seul dans `dist/` |
+| `npm run build:site` | Mini-site seul dans `dist-site/`, pour une racine de domaine |
+| `npm run build:pages` | Mini-site seul dans `dist-site/`, avec le préfixe `/ardechoise-vite/` |
+| `npm run build:android` | Jeu seul dans `dist-android/`, embarqué localement par Capacitor |
+| `npm run preview` | Prévisualisation du build du jeu, pour le développement |
+| `npm run preview:site` | Prévisualisation du mini-site sur `http://localhost:4174/` |
+| `npm run preview:pages` | Prévisualisation du mini-site sur `http://localhost:4174/ardechoise-vite/` |
 
-```
-    npx cap add ios
-```
+Le mini-site a son entrée dans `site/` et sa configuration `vite.site.config.js`. Ses fichiers sont séparés du jeu et seuls ceux de `dist-site/` sont publiés sur GitHub Pages. Le build Android ouvre directement le jeu et embarque ses ressources locales.
 
-Synchronize configuration between the web app and Android:
-```
-    npx cap sync
-```
+Les builds et les commandes `preview:site`/`preview:pages` utilisent uniquement GitHub Releases pour les téléchargements. La première APK doit être publiée dans une release stable pour activer les boutons de ces versions du site.
 
-Open android studio with this project:
-```
-    npx cap open android
-```
+## Publication
 
-### Build With Android Studio
+- [GitHub Pages, téléchargements et Releases](docs/publishing.md)
+- [Créer, signer et tester l'APK Android](docs/android.md)
 
-Once the project open in android studio you can :
+Le workflow Pages se lance **manuellement après validation**. Les scripts Android préparent des fichiers locaux ; ils ne publient aucune APK. La première APK locale `releases/ardechoise-android-v1.0.0.apk` est compilée et signée, avec l'icône personnalisée. Sa signature et les ressources embarquées sont vérifiées ; elle doit encore être essayée sur téléphone avant publication.
 
-1. Build --> generated app bundle --> Generate Apk
+Après les essais sur téléphone et validation : pousser les sources, publier une release stable `v1.0.0` avec l'APK et son `.sha256`, choisir **GitHub Actions** dans **Settings → Pages → Source**, puis lancer **Actions → Publier le mini-site sur GitHub Pages → Run workflow**. L'adresse attendue est `https://rudy-martins.github.io/ardechoise-vite/`. Les détails sont dans [le guide de publication](docs/publishing.md).
 
-### Build direct with Gradlew
+## APK locale avec icône personnalisée
 
-Go in android repository created automatically with the command above: init capacitor.
-```
-cd android 
-```
+Sous Windows, la méthode portable ne nécessite pas Android Studio :
 
-Compile
-```
-./gradlew assembleDebug
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-android-tools.ps1 -AcceptAndroidLicense
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\android-build-local.ps1 -CreateSigningKey -VersionName 1.0.0 -VersionCode 1
 ```
 
-The apk build:
-```
-./android/app/build/outputs/apk/debug/app-debug.apk
+Les outils sont placés dans `.android-tools/`, ignoré par Git. La compilation utilise `assets/android/app-icon.png`, adapté depuis l'illustration personnalisée fournie, et génère les icônes avec `scripts/android-icons.ps1`. L'APK signée et son SHA-256 sont préparés dans `releases/`, sans publication automatique.
+
+Pour une mise à jour, relancer `android-build-local.ps1` sans `-CreateSigningKey`, avec un `VersionName` adapté et un `VersionCode` supérieur. La clé permanente et les credentials protégés par le compte Windows sont conservés hors du dépôt dans `%LOCALAPPDATA%\Ardechoise\signing` ; le cache Gradle est également hors OneDrive. Sauvegarder la clé **et** son mot de passe pour pouvoir signer les futures versions, notamment après un changement de PC. Les étapes, la sauvegarde et l'alternative Android Studio sont dans [le guide Android](docs/android.md).
+
+L'aperçu `dev:site` permet déjà de télécharger l'APK locale ; le site public utilise les APK de GitHub Releases. Une APK locale signée doit d'abord être testée sur téléphone avant sa publication.
+
+## Visuels de la vitrine
+
+Le logo original `public/logo.png` est conservé. `site/public/site/logo-cutout.png` en fournit une version détourée pour le fond sombre. `site/public/site/casino-alex.png` met en scène Alex à partir du personnage de `public/alex-croupier.png` ; le téléphone et son unique aperçu CUL SEC sont rendus en HTML/CSS.
+
+Les visuels de la vitrine ne sont pas embarqués dans le build Android. Les [prompts et la provenance des images](docs/art-prompts.md) sont documentés. L'icône Android personnalisée est une ressource séparée dans `assets/android/`.

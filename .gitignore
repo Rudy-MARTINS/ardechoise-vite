@@ -12,6 +12,16 @@ dist
 dist-ssr
 *.local
 .env
+dist-android/
+dist-site/
+releases/
+.android-tools/
+**/*.jks
+**/*.keystore
+**/signing.credential.xml
+android/.gradle/
+android/local.properties
+android/**/build/
 
 # Editor directories and files
 .vscode/*

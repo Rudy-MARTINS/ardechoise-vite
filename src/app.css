@@ -429,6 +429,50 @@ textarea {
 }
 
 @media (orientation: portrait) {
+  .game--first-phase {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .game--first-phase > .play-screen {
+    order: 1;
+    flex: 0 0 auto;
+  }
+
+  .game--first-phase > .fault-panel {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    order: 2;
+    align-self: center;
+    margin-top: auto;
+    padding-top: 24px;
+  }
+
+  .game--first-phase .play-screen__body {
+    gap: 28px;
+  }
+
+  .game--first-phase .waiting-confirmation .play-screen__action-buttons button {
+    min-width: 0;
+    width: min(220px, calc(100vw - 116px));
+  }
+
+  .play-screen__recap .cards-recap {
+    margin-top: 14px;
+  }
+
+  .play-screen__recap .mini-card {
+    width: clamp(58px, 17vw, 70px);
+    height: clamp(87px, 25.5vw, 105px);
+  }
+
+  .play-screen__recap .mini-center {
+    font-size: clamp(26px, 7vw, 32px);
+  }
+
   .play-screen--intermediate {
     min-height: calc(100dvh - 16px - 170px);
     display: flex;

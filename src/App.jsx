@@ -5,9 +5,9 @@ import BoutonFaute from "./components/BoutonFaute/BoutonFaute";
 import MiniCard from "./components/Card/MiniCard";
 import DonnePrendPhase from "./components/DonnePrendPhase/DonnePrendPhase";
 import DistributionGorgees from "./components/DistributionGorgees/DistributionGorgees";
-
-const createEmptyPlayerCards = (count) =>
-  Array.from({ length: count }, () => []);
+import FinalRecap from "./components/FinalRecap/FinalRecap";
+import PlayerCards from "./components/PlayerCards/PlayerCards";
+import { createEmptyPlayerCards, createNewGame } from "./game/gameState";
 
 function App() {
   const [numPlayers, setNumPlayers] = useState(2);
@@ -29,6 +29,7 @@ function App() {
   );
   const [gorgeesRecues, setGorgeesRecues] = useState(Array(2).fill(0));
   const [fautesDeJeu, setFautesDeJeu] = useState(Array(2).fill(0));
+  const [culSecs, setCulSecs] = useState(Array(2).fill(0));
 
   const [showDistribution, setShowDistribution] = useState(false);
   const [gorgeesToDistribute, setGorgeesToDistribute] = useState(0);
@@ -37,6 +38,8 @@ function App() {
   const [waitingForConfirmation, setWaitingForConfirmation] = useState(false);
   const [showIntermediatePage, setShowIntermediatePage] = useState(false);
   const [showRecap, setShowRecap] = useState(false);
+  const [showFinalRecap, setShowFinalRecap] = useState(false);
+  const [endReason, setEndReason] = useState("");
 
   const [showDonnePrendPhase, setShowDonnePrendPhase] = useState(false);
   const [isDonnePrendDistributing, setIsDonnePrendDistributing] = useState(false);
@@ -47,12 +50,22 @@ function App() {
   const faultMenuRef = useRef(null);
 
   const [actionLocked, setActionLocked] = useState(false);
+  const actionLockRef = useRef(false);
+  const actionTimeoutRef = useRef(null);
 
   const isDistributing = showDistribution || isDonnePrendDistributing;
-  const isRecapVisible = showRecap && !showDonnePrendPhase;
+  const isRecapVisible = showFinalRecap || (showRecap && !showDonnePrendPhase);
   const showFaultControls = !isDistributing && !isRecapVisible;
+  const roundSipLabel = `${roundNumber} gorgée${roundNumber > 1 ? "s" : ""}`;
+  const isFirstPhasePlaying =
+    !showIntermediatePage && !showRecap && !showDonnePrendPhase && !showFinalRecap;
+  const cardsForViewer = playerCards.map((cards, index) => {
+    const includeRevealedCard =
+      isFirstPhasePlaying && cardRevealed && currentCard && index === currentPlayer &&
+      !cards.some((card) => card.value === currentCard.value && card.suit === currentCard.suit);
 
-  const suits = ["cœur", "carreau", "pique", "trèfle"];
+    return includeRevealedCard ? [...cards, currentCard] : cards;
+  });
 
   const getCardValue = (value) => {
     switch (value) {
@@ -84,10 +97,7 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    initializeDeck();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => () => clearTimeout(actionTimeoutRef.current), []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -116,37 +126,25 @@ function App() {
     return () => clearTimeout(timeout);
   }, [faultToast]);
 
-  const withActionLock = (callback, delay = 450) => {
-    if (actionLocked) return;
+  const releaseActionLock = (delay = 450) => {
+    clearTimeout(actionTimeoutRef.current);
+    actionTimeoutRef.current = setTimeout(() => {
+      actionLockRef.current = false;
+      setActionLocked(false);
+    }, delay);
+  };
 
+  const withActionLock = (callback, delay = 450) => {
+    if (actionLockRef.current) return;
+
+    actionLockRef.current = true;
     setActionLocked(true);
 
     try {
       callback();
     } finally {
-      setTimeout(() => {
-        setActionLocked(false);
-      }, delay);
+      releaseActionLock(delay);
     }
-  };
-
-  const initializeDeck = () => {
-    const newDeck = [];
-    suits.forEach((suit) => {
-      for (let value = 2; value <= 14; value++) {
-        newDeck.push({ value, suit });
-      }
-    });
-    setDeck(shuffle(newDeck));
-  };
-
-  const shuffle = (array) => {
-    const arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
   };
 
   const drawCard = () => {
@@ -165,6 +163,7 @@ function App() {
     setGorgeesDistribuees(Array(value).fill(0));
     setGorgeesRecues(Array(value).fill(0));
     setFautesDeJeu(Array(value).fill(0));
+    setCulSecs(Array(value).fill(0));
   };
 
   const handlePlayerNameChange = (e, index) => {
@@ -173,26 +172,52 @@ function App() {
     setPlayerNames(newPlayerNames);
   };
 
+  const startNewGame = () => {
+    const next = createNewGame(playerNames);
+    clearTimeout(actionTimeoutRef.current);
+    actionLockRef.current = false;
+
+    setStartGame(next.startGame);
+    setCurrentPlayer(next.currentPlayer);
+    setRoundNumber(next.roundNumber);
+    setMessage(next.message);
+    setCurrentCard(next.currentCard);
+    setCardRevealed(next.cardRevealed);
+    setDeck(next.deck);
+    setPlayerCards(next.playerCards);
+    setGorgeesDistribuees(next.gorgeesDistribuees);
+    setGorgeesRecues(next.gorgeesRecues);
+    setFautesDeJeu(next.fautesDeJeu);
+    setCulSecs(next.culSecs);
+    setShowDistribution(next.showDistribution);
+    setGorgeesToDistribute(next.gorgeesToDistribute);
+    setSplitGorgees(next.splitGorgees);
+    setWaitingForConfirmation(next.waitingForConfirmation);
+    setShowIntermediatePage(next.showIntermediatePage);
+    setShowRecap(next.showRecap);
+    setShowFinalRecap(next.showFinalRecap);
+    setEndReason(next.endReason);
+    setShowDonnePrendPhase(next.showDonnePrendPhase);
+    setIsDonnePrendDistributing(next.isDonnePrendDistributing);
+    setShowFaultMenu(next.showFaultMenu);
+    setFaultToast(next.faultToast);
+    setActionLocked(next.actionLocked);
+  };
+
   const handleStartGame = () => {
     if (!playerNames.every((name) => name.trim() !== "")) {
       alert("Veuillez remplir tous les noms des joueurs.");
       return;
     }
 
-    setStartGame(true);
-    setCurrentPlayer(0);
-    setMessage(`${playerNames[0]} à toi de jouer !`);
-
-    const card = drawCard();
-    setCurrentCard(card);
-    setCardRevealed(false);
+    startNewGame();
 
     try {
       const startSound = startSoundRef.current;
       startSound.currentTime = 0;
       startSound.volume = 0.6;
       startSound.play().catch(() => {});
-    } catch (e) {
+    } catch {
       // ignore
     }
   };
@@ -229,7 +254,7 @@ function App() {
 
     if ((guess === "rouge" && isRed) || (guess === "noir" && !isRed)) {
       setMessage(
-        `${playerNames[currentPlayer]}, bien joué tu peux distribuer ${roundNumber} gorgée(s).`,
+        `${playerNames[currentPlayer]}, bien joué tu peux distribuer ${roundSipLabel}.`,
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
@@ -239,7 +264,7 @@ function App() {
     }
 
     setMessage(
-      `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundNumber} gorgée(s) !`,
+      `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundSipLabel} !`,
     );
     const next = [...gorgeesRecues];
     next[currentPlayer] += roundNumber;
@@ -258,7 +283,7 @@ function App() {
 
     if (ok) {
       setMessage(
-        `${playerNames[currentPlayer]}, bien joué tu peux distribuer ${roundNumber} gorgée(s).`,
+        `${playerNames[currentPlayer]}, bien joué tu peux distribuer ${roundSipLabel}.`,
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
@@ -268,7 +293,7 @@ function App() {
     }
 
     setMessage(
-      `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundNumber} gorgée(s) !`,
+      `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundSipLabel} !`,
     );
     const next = [...gorgeesRecues];
     next[currentPlayer] += roundNumber;
@@ -296,7 +321,7 @@ function App() {
 
     if (ok) {
       setMessage(
-        `${playerNames[currentPlayer]}, bien joué tu peux distribuer ${roundNumber} gorgée(s).`,
+        `${playerNames[currentPlayer]}, bien joué tu peux distribuer ${roundSipLabel}.`,
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
@@ -306,7 +331,7 @@ function App() {
     }
 
     setMessage(
-      `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundNumber} gorgée(s) !`,
+      `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundSipLabel} !`,
     );
     const next = [...gorgeesRecues];
     next[currentPlayer] += roundNumber;
@@ -319,7 +344,7 @@ function App() {
 
     if (ok) {
       setMessage(
-        `${playerNames[currentPlayer]}, CHAAAAAMMMPIIOOOOOOON tu peux distribuer ${roundNumber} gorgée(s).`,
+        `${playerNames[currentPlayer]}, CHAAAAAMMMPIIOOOOOOON tu peux distribuer ${roundSipLabel}.`,
       );
       setGorgeesToDistribute(roundNumber);
       setSplitGorgees([]);
@@ -329,7 +354,7 @@ function App() {
     }
 
     setMessage(
-      `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundNumber} gorgée(s) !`,
+      `Ah ah ah, bien joué ${playerNames[currentPlayer]}... c'était pas ça. TU BOIS ${roundSipLabel} !`,
     );
     const next = [...gorgeesRecues];
     next[currentPlayer] += roundNumber;
@@ -345,7 +370,7 @@ function App() {
   };
 
   const distributeGorgees = (toPlayer, amount) => {
-    if (actionLocked) return;
+    if (actionLockRef.current) return;
 
     const newSplit = [...splitGorgees, { toPlayer, amount }];
     const totalDistributed = newSplit.reduce(
@@ -361,6 +386,7 @@ function App() {
     }
 
     if (totalDistributed === gorgeesToDistribute) {
+      actionLockRef.current = true;
       setActionLocked(true);
 
       const newDistrib = [...gorgeesDistribuees];
@@ -378,9 +404,7 @@ function App() {
 
       nextTurn();
 
-      setTimeout(() => {
-        setActionLocked(false);
-      }, 450);
+      releaseActionLock();
     } else {
       setSplitGorgees(newSplit);
     }
@@ -428,10 +452,18 @@ function App() {
       });
     }
 
-    if (type === "DRINK") {
+    if (type === "DRINK" || type === "CULSEC") {
       setGorgeesRecues((prev) => {
         const next = [...prev];
         next[toPlayer] += amount;
+        return next;
+      });
+    }
+
+    if (type === "CULSEC") {
+      setCulSecs((prev) => {
+        const next = [...prev];
+        next[toPlayer] += 1;
         return next;
       });
     }
@@ -452,7 +484,7 @@ function App() {
       return next;
     });
 
-    const faultMessage = `${playerNames[playerIndex]} prend ${amount} gorgée(s) pour faute de jeu.`;
+    const faultMessage = `${playerNames[playerIndex]} prend ${amount} gorgée${amount > 1 ? "s" : ""} pour faute de jeu.`;
 
     setFaultToast(faultMessage);
     setShowFaultMenu(false);
@@ -497,12 +529,21 @@ function App() {
   };
   const handleStartDonnePrendPhase = () => setShowDonnePrendPhase(true);
 
+  const handleFinishDonnePrend = (reason) => {
+    setShowDonnePrendPhase(false);
+    setIsDonnePrendDistributing(false);
+    setShowFaultMenu(false);
+    setFaultToast("");
+    setShowFinalRecap(true);
+    setEndReason(reason);
+  };
+
   return (
     <div className="App">
       {startGame ? (
-        <div className="game">
+        <div className={`game${isDonnePrendDistributing ? " game--dp-distribution" : ""}${isFirstPhasePlaying && !showDistribution ? " game--first-phase" : ""}`}>
           <div className="fault-panel" ref={faultMenuRef}>
-            {!isRecapVisible && faultToast && (
+            {!isRecapVisible && !isDonnePrendDistributing && faultToast && (
               <div className="fault-toast">{faultToast}</div>
             )}
 
@@ -523,7 +564,22 @@ function App() {
             {showFaultControls && <BoutonFaute onClick={toggleFault} />}
           </div>
 
-          {showDonnePrendPhase ? (
+          {!isRecapVisible && (
+            <PlayerCards players={playerNames} playerCards={cardsForViewer} />
+          )}
+
+          {showFinalRecap ? (
+            <FinalRecap
+              players={playerNames}
+              gorgeesRecues={gorgeesRecues}
+              gorgeesDistribuees={gorgeesDistribuees}
+              fautesDeJeu={fautesDeJeu}
+              culSecs={culSecs}
+              endReason={endReason}
+              onRestart={handleStartGame}
+              onHome={() => window.location.reload()}
+            />
+          ) : showDonnePrendPhase ? (
             <DonnePrendPhase
               players={playerNames}
               remainingDeck={deck}
@@ -534,15 +590,12 @@ function App() {
                 setIsDonnePrendDistributing(isDistributing);
                 if (isDistributing) setShowFaultMenu(false);
               }}
-              onFinish={(action) => {
-                if (action === "RESTART") window.location.reload();
-                if (action === "HOME") window.location.reload();
-              }}
+              onFinish={handleFinishDonnePrend}
             />
           ) : showRecap ? (
             <div className="play-screen play-screen--centered">
               <div className="play-screen__header">
-                <h2>Récapitulatif final</h2>
+                <h2>Récapitulatif provisoire</h2>
               </div>
 
               <div className="play-screen__body play-screen__body--single">

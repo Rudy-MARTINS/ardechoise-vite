@@ -1,6 +1,8 @@
 import React, { useRef, useState } from "react";
 import Card from "../Card/Card";
 import DistributionGorgees from "../DistributionGorgees/DistributionGorgees";
+import CardPair from "./CardPair";
+import { CUL_SEC_GORGEES } from "../../game/gameState.js";
 import "./DonnePrendPhase.css";
 
 const DonnePrendPhase = ({
@@ -18,6 +20,8 @@ const DonnePrendPhase = ({
   const hardcoreSoundRef = useRef(null);
 
   const [currentCard, setCurrentCard] = useState(null);
+  const [previousDonneCard, setPreviousDonneCard] = useState(null);
+  const [selectedSlot, setSelectedSlot] = useState(0);
   const [cardRevealed, setCardRevealed] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -27,6 +31,7 @@ const DonnePrendPhase = ({
   const [hardcoreMode, setHardcoreMode] = useState(false);
   const [pendingSplit, setPendingSplit] = useState({});
   const [hasDrawnThisStep, setHasDrawnThisStep] = useState(false);
+  const [deckExhausted, setDeckExhausted] = useState(false);
 
   const [transitionLock, setTransitionLock] = useState(false);
   const [actionLock, setActionLock] = useState(false);
@@ -80,6 +85,7 @@ const DonnePrendPhase = ({
     setPendingSplit({});
     setCardRevealed(false);
     setHasDrawnThisStep(false);
+    setDeckExhausted(false);
     setPlayersWithCard([]);
     setHardcoreMode(false);
     setCurrentGiverIndex(0);
@@ -94,6 +100,7 @@ const DonnePrendPhase = ({
 
     if (!remainingDeck || remainingDeck.length === 0) {
       setMessage("Le deck est vide : fin de la phase.");
+      setDeckExhausted(true);
       return;
     }
 
@@ -145,15 +152,20 @@ const DonnePrendPhase = ({
 
     if (mode === "CULSEC") {
       setMode("END");
+      onFinish?.("END");
       setTimeout(() => setTransitionLock(false), 0);
       return;
     }
 
     if (phaseDonne) {
+      setPreviousDonneCard(currentCard);
       setPhaseDonne(false);
       setTimeout(() => setTransitionLock(false), 0);
       return;
     }
+
+    setPreviousDonneCard(null);
+    setSelectedSlot(0);
 
     if (currentRound === 4) {
       setMode("CULSEC");
@@ -223,7 +235,7 @@ const DonnePrendPhase = ({
       amount: amountToDrink,
     });
 
-    setMessage(`${players[playerIndex]} a bu ${amountToDrink} gorgée(s).`);
+    setMessage(`${players[playerIndex]} a bu ${amountToDrink} gorgée${amountToDrink > 1 ? "s" : ""}.`);
 
     if (currentGiverIndex < playersWithCard.length - 1) {
       setCurrentGiverIndex((i) => i + 1);
@@ -240,9 +252,9 @@ const DonnePrendPhase = ({
     lockAction();
 
     updateGorgees({
-      type: "DRINK",
+      type: "CULSEC",
       toPlayer: playerIndex,
-      amount: 10,
+      amount: CUL_SEC_GORGEES,
     });
 
     setMessage(`${players[playerIndex]} : CUL SEC 🥴`);
@@ -255,25 +267,83 @@ const DonnePrendPhase = ({
     }
   };
 
+  const handleHardcore = () => {
+    if (actionLockRef.current) return;
+    lockAction();
+    drawCard(true);
+
+    try {
+      if (!hardcoreSoundRef.current) {
+        hardcoreSoundRef.current = new Audio("/hardcore.wav");
+      }
+      const hardcoreSound = hardcoreSoundRef.current;
+      hardcoreSound.currentTime = 0;
+      hardcoreSound.volume = 0.8;
+      hardcoreSound.play().catch(() => {});
+    } catch {
+      // Sound playback may be blocked by the browser.
+    }
+
+    setTimeout(unlockAction, 0);
+  };
+
+  const drinkingAmount = currentRound * giverCopies;
+  const hasDrinkingInstruction =
+    mode === "NORMAL" && !phaseDonne && cardRevealed && currentGiver;
+
   const phaseTitle = (() => {
-    if (mode === "CULSEC") return "🥃 CUL SEC — tire une carte";
+    if (mode === "CULSEC") {
+      return (
+        <span className="dp-culsec-title">
+          <span className="dp-culsec-glass" aria-hidden="true">
+            <span className="verre" />
+          </span>
+          CUL SEC — tire une carte
+        </span>
+      );
+    }
     if (mode === "END") return "🏁 Fin de beuverie";
+    if (hasDrinkingInstruction) {
+      return (
+        <>
+          🍺 <strong className="dp-player-name">{players[giverIndex]}</strong>, tu bois :{" "}
+          {drinkingAmount} gorgée{drinkingAmount > 1 ? "s" : ""}
+        </>
+      );
+    }
 
     return phaseDonne
       ? `🍻 Donne ${currentRound} gorgée${currentRound > 1 ? "s" : ""}`
       : `🍺 Prends ${currentRound} gorgée${currentRound > 1 ? "s" : ""}`;
   })();
 
-  const feedback = (
-    <>
-      {message && <div className="message">{message}</div>}
-      {mode !== "END" && !cardRevealed && (
-        <div className="message">
-          Tire une carte. Mode Hardcore si personne n&apos;a la valeur.
-        </div>
-      )}
-    </>
-  );
+  const feedback = message && <div className="message">{message}</div>;
+
+  const landscapeSlots = (() => {
+    if (!cardRevealed && phaseDonne) {
+      return [0, 1].map((slot) => ({
+        label: "Tirer Donne",
+        onClick: () => {
+          if (actionLockRef.current || hasDrawnThisStep) return;
+          setSelectedSlot(slot);
+          drawCard();
+        },
+        disabled: hasDrawnThisStep || actionLock,
+      }));
+    }
+
+    const donne = {
+      card: phaseDonne ? currentCard : previousDonneCard,
+      label: "Carte Donne",
+    };
+    const prend = {
+      card: !phaseDonne && cardRevealed ? currentCard : null,
+      label: !phaseDonne && !cardRevealed ? "Tirer Prend" : "Carte Prend",
+      onClick: !phaseDonne && !cardRevealed ? () => drawCard() : undefined,
+      disabled: actionLock,
+    };
+    return selectedSlot === 1 ? [prend, donne] : [donne, prend];
+  })();
 
   if (mode === "NORMAL" && phaseDonne && cardRevealed && currentGiver) {
     return (
@@ -288,15 +358,72 @@ const DonnePrendPhase = ({
         pendingSplit={pendingSplit}
         actionLocked={actionLock}
         onDistribute={handleDistributeOne}
+        layoutDP
       />
+    );
+  }
+
+  if (deckExhausted) {
+    return (
+      <div className="donne-prend-phase">
+        <div className="dp-screen">
+          <div className="dp-screen__header">
+            <h2>Le paquet est épuisé</h2>
+            <p>Toutes les gorgées déjà comptabilisées sont conservées.</p>
+          </div>
+          <div className="actions">
+            <button type="button" onClick={() => onFinish?.("DECK_EMPTY")}>
+              Voir le récapitulatif
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="donne-prend-phase">
-      <div className={`dp-screen${mode !== "END" ? " dp-screen--split" : ""}`}>
+      {mode === "NORMAL" && (
+        <section className="dp-landscape" aria-label="Donne / Prend">
+          <div className="dp-landscape__instruction" aria-live="polite">
+            <h2 className={hasDrinkingInstruction ? "dp-player-instruction" : undefined}>
+              {phaseTitle}
+            </h2>
+            {hasDrinkingInstruction && giverCopies > 1 && (
+              <p>{giverCopies} cartes identiques</p>
+            )}
+          </div>
+          <CardPair
+            slots={landscapeSlots}
+            controls={cardRevealed && (
+              hardcoreMode ? (
+                <button
+                  type="button"
+                  className="dp-hardcore-action"
+                  onClick={handleHardcore}
+                  disabled={actionLock}
+                >
+                  🔥 Mode Hardcore
+                </button>
+              ) : !phaseDonne && currentGiver ? (
+                <button
+                  type="button"
+                  className="dp-confirm-action"
+                  onClick={() => handleDrinkGorgee(giverIndex)}
+                  disabled={actionLock}
+                >
+                  ✅ J&apos;ai bu
+                </button>
+              ) : null
+            )}
+          />
+        </section>
+      )}
+      <div className={`dp-screen${mode === "NORMAL" ? " dp-screen--legacy" : ""}${mode !== "END" ? " dp-screen--split" : ""}`}>
         <div className="dp-screen__header">
-          <h2>{phaseTitle}</h2>
+          <h2 className={hasDrinkingInstruction ? "dp-player-instruction" : undefined}>
+            {phaseTitle}
+          </h2>
           <div className="dp-screen__feedback dp-screen__feedback--portrait">
             {feedback}
           </div>
@@ -375,14 +502,9 @@ const DonnePrendPhase = ({
                 ) : (
                   currentGiver && (
                     <div className="dp-block">
-                      <div className="active-player">
-                        🍺 À boire : {players[giverIndex]}
-                        {giverCopies > 1 ? ` (x${giverCopies})` : ""}
-                      </div>
-
-                      <div className="counter">
-                        Boit : {currentRound * giverCopies} gorgée(s)
-                      </div>
+                      {giverCopies > 1 && (
+                        <div className="counter">{giverCopies} cartes identiques</div>
+                      )}
 
                       <div className="actions">
                         <button
@@ -401,26 +523,7 @@ const DonnePrendPhase = ({
                     <div className="actions">
                       <button
                         disabled={actionLock}
-                        onClick={() => {
-                          if (actionLockRef.current) return;
-                          lockAction();
-
-                          drawCard(true);
-
-                          try {
-                            if (!hardcoreSoundRef.current) {
-                              hardcoreSoundRef.current = new Audio("/hardcore.wav");
-                            }
-                            const hardcoreSound = hardcoreSoundRef.current;
-                            hardcoreSound.currentTime = 0;
-                            hardcoreSound.volume = 0.8;
-                            hardcoreSound.play().catch(() => {});
-                          } catch {
-                            // ignore autoplay block etc.
-                          }
-
-                          setTimeout(unlockAction, 0);
-                        }}
+                        onClick={handleHardcore}
                       >
                         🔥 HARDCOOOOOOOOORE !
                       </button>

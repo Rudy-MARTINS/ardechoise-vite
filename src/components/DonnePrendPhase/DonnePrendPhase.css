@@ -2,6 +2,11 @@
   width: 100%;
 }
 
+/* Only the existing screen is shown in portrait. */
+.dp-landscape {
+  display: none;
+}
+
 .dp-screen {
   width: 100%;
   max-width: 1080px;
@@ -26,6 +31,56 @@
   line-height: 1.15;
   color: var(--ui-white);
   text-shadow: var(--ui-white-stroke);
+}
+
+.dp-screen__header h2.dp-player-instruction,
+.dp-landscape__instruction h2.dp-player-instruction {
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.dp-player-name {
+  font-size: 1.15em;
+  font-weight: 900;
+}
+
+.dp-culsec-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.dp-culsec-glass {
+  display: inline-flex;
+  flex: 0 0 18px;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 40px;
+  transform-origin: center bottom;
+  animation: culsec-glass-shake 3.6s ease-in-out infinite;
+}
+
+.dp-culsec-glass .verre {
+  width: 14px;
+  height: 30px;
+}
+
+.dp-culsec-glass .verre::after {
+  padding: 2px 3px;
+  border-bottom-width: 2px;
+}
+
+.dp-culsec-glass .verre::before {
+  inset: -7px calc(50% - 1px) 4px;
+}
+
+@keyframes culsec-glass-shake {
+  0%, 62%, 100% { transform: rotate(0deg); }
+  68%, 80% { transform: rotate(-4deg); }
+  74%, 86% { transform: rotate(4deg); }
+  92% { transform: rotate(-2deg); }
 }
 
 .dp-screen__body {
@@ -390,7 +445,299 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .dp-culsec-glass {
+    animation: none;
+  }
+
   .donne-prend-phase button {
     transition: none;
+  }
+}
+
+/* Shared by Donne / Prend only; the first-phase distribution keeps its layout. */
+@media (orientation: landscape) {
+  .dp-screen--legacy {
+    display: none;
+  }
+
+  .game--dp-distribution {
+    padding-bottom: 64px;
+  }
+
+  .dp-landscape {
+    /* Match .game's landscape padding; reserve the fixed fault controls. */
+    --dp-game-top-space: 8px;
+    --dp-fault-space: 110px;
+    --dp-card-gap: clamp(8px, 2vw, 24px);
+    --dp-center-width: clamp(110px, 24vw, 220px);
+    --dp-draw-image-scale: 1.5;
+    --dp-card-max-height: 380px;
+    --dp-card-max-width: calc(var(--dp-card-max-height) * 2 / 3);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    justify-items: center;
+    gap: 8px;
+    width: 100%;
+    height: calc(100dvh - var(--dp-game-top-space) - var(--dp-fault-space));
+    min-height: 0;
+    max-width: none;
+    margin: 0 auto;
+    padding: 4px 8px 12px;
+    color: var(--ui-white);
+    text-shadow: var(--ui-white-stroke);
+  }
+
+  .dp-landscape.dp-landscape--distribution {
+    --dp-fault-space: 64px;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    grid-template-rows: minmax(0, 1fr);
+    justify-items: stretch;
+    gap: clamp(14px, 3vw, 32px);
+    padding-inline: 16px;
+  }
+
+  .dp-distribution-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .dp-distribution-card h2 {
+    width: 100%;
+    max-height: 30%;
+    margin: 0;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    font-size: clamp(1.1rem, 2.7vw, 1.8rem);
+    line-height: 1.3;
+  }
+
+  .dp-distribution-card__slot {
+    container-type: size;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .dp-distribution-card__slot .playing-card {
+    --distribution-card-width: min(100cqw, calc(100cqh * 2 / 3), 200px);
+    width: var(--distribution-card-width);
+    height: calc(var(--distribution-card-width) * 3 / 2);
+    padding: clamp(6px, 3cqh, 12px);
+    transform: none;
+    font-size: clamp(10px, 7cqh, 1.2rem);
+    text-shadow: none;
+  }
+
+  .dp-distribution-card__slot .pc-center {
+    font-size: clamp(20px, 25cqh, 72px);
+  }
+
+  .dp-distribution-controls {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .dp-landscape--distribution .dp-landscape__recipients {
+    grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+    width: 100%;
+  }
+
+  .donne-prend-phase .dp-landscape--distribution .dp-landscape__recipients button {
+    max-width: 260px;
+    justify-self: center;
+  }
+
+  .dp-landscape__instruction {
+    width: 100%;
+    max-width: 780px;
+    min-height: 0;
+    max-height: calc((100dvh - var(--dp-game-top-space) - var(--dp-fault-space)) * 0.35);
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+  }
+
+  .dp-landscape__instruction h2 {
+    margin: 0 0 4px;
+    font-size: clamp(1.1rem, 2.7dvh, 1.8rem);
+    line-height: 1.15;
+  }
+
+  .dp-landscape__instruction p {
+    margin: 0;
+    font-size: clamp(0.85rem, 2.2dvh, 1.15rem);
+    line-height: 1.25;
+  }
+
+  .dp-landscape__instruction .dp-landscape__message {
+    margin-top: 4px;
+    font-size: 0.85rem;
+  }
+
+  .dp-card-pair {
+    /* Reserve a central column for confirmation or Hardcore actions. */
+    container-type: size;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--dp-center-width) minmax(0, 1fr);
+    justify-items: center;
+    gap: var(--dp-card-gap);
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    align-items: center;
+  }
+
+  .dp-card-position {
+    --dp-card-width: min(calc(100cqh * 2 / 3), calc((100cqw - var(--dp-center-width) - var(--dp-card-gap) * 2) / 2), var(--dp-card-max-width));
+    --dp-card-height: calc(var(--dp-card-width) * 3 / 2);
+    width: var(--dp-card-width);
+    height: var(--dp-card-height);
+    min-width: 0;
+    min-height: 0;
+    grid-row: 1;
+  }
+
+  .dp-card-position:first-child {
+    grid-column: 1;
+  }
+
+  .dp-card-position:nth-child(2) {
+    grid-column: 3;
+  }
+
+  .dp-card-controls {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    max-width: 220px;
+  }
+
+  .donne-prend-phase .dp-card-controls button {
+    width: 100%;
+    min-width: 0;
+    max-width: 200px;
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: clamp(0.75rem, 1.8vw, 1rem);
+    line-height: 1.15;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .donne-prend-phase .dp-card-choice,
+  .dp-card-passive {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 14px;
+    background: transparent;
+    box-shadow: none;
+    white-space: normal;
+  }
+
+  .donne-prend-phase .dp-card-choice:focus-visible {
+    outline: 3px solid var(--ui-white);
+    outline-offset: 4px;
+  }
+
+  .dp-card-position .playing-card,
+  .dp-card-back {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: clamp(2px, calc(var(--dp-card-height) * 0.025), 12px);
+    border-radius: 14px;
+    transform: none;
+    font-size: clamp(0.65rem, 7cqh, 1.2rem);
+  }
+
+  .dp-card-position .playing-card {
+    font-size: clamp(8px, calc(var(--dp-card-height) * 0.08), 1.2rem);
+    text-shadow: none;
+  }
+
+  .dp-card-position .pc-center {
+    font-size: clamp(10px, calc(var(--dp-card-height) * 0.25), 72px);
+  }
+
+  .dp-card-back {
+    display: block;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  .dp-card-back img {
+    display: block;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* The source image has wide margins around the actual card. */
+    transform: scale(var(--dp-draw-image-scale));
+  }
+
+  .dp-card-passive .dp-card-back {
+    opacity: 0.65;
+  }
+
+  .dp-landscape__recipients {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 240px));
+    justify-content: center;
+    gap: 10px;
+    width: min(100%, 780px);
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    align-content: safe center;
+    align-items: center;
+    padding: 4px;
+  }
+
+  .donne-prend-phase .dp-landscape__recipients button {
+    width: 100%;
+    min-width: 0;
+    max-width: 240px;
+    min-height: 44px;
+    padding: 8px 10px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 0.85rem;
+    line-height: 1.2;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 380px) {
+  .dp-landscape {
+    gap: 6px;
+  }
+
+  .dp-landscape__instruction .dp-landscape__message {
+    margin-top: 2px;
+    font-size: 0.75rem;
   }
 }

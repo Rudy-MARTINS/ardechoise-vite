@@ -6,7 +6,7 @@ Les deux visuels ont été créés avec l’outil intégré `image_gen`, sans CL
 
 - Fichier livré : `site/public/site/logo-cutout.png`
 - Source officielle utilisée comme cible de détourage : `public/logo.png` (deux chopes, texte ARDÉCHOISE).
-- Sortie de l’outil : `C:/Users/marti/.codex/generated_images/01a12260-7665-72d1-965b-57aac47178dd/exec-911eba20-2cb9-454a-8f9d-76f572283c9d.png`
+- La sortie originale de l’outil est conservée dans `site/public/site/logo-cutout.png`.
 - Fond transparent demandé ; copie de la sortie sans modification.
 
 ### Prompt exact
@@ -26,7 +26,7 @@ Avoid: beige box, black background, checkerboard baked into the pixels, new font
 
 - Fichier livré : `site/public/site/casino-alex.png`
 - Source d’identité/style : `public/alex-croupier.png`, personnage pixel art officiel du jeu. La bordure de la carte et son texte ne sont pas inclus dans le nouveau visuel.
-- Sortie de l’outil : `C:/Users/marti/.codex/generated_images/01a12260-7665-72d1-965b-57aac47178dd/exec-8414921d-1e5d-4e28-931e-cff80b49fbf9.png`
+- La sortie originale de l’outil est conservée dans `site/public/site/casino-alex.png`.
 - Illustration paysage seule, sans interface, téléphone, slogan ni logo : les éléments interactifs et le téléphone du mini-site sont ajoutés en HTML/CSS.
 - Composition : Alex au centre droit, zone sombre à gauche pour le contenu, table au bas de l’image. Le CSS adapte le recadrage à chaque format et place le téléphone plus bas en portrait pour laisser le visage d’Alex visible.
 

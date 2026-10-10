@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { siteApkPreview } from './scripts/site-apk-preview.mjs'
+import { siteSecurity } from './scripts/site-security.mjs'
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url))
 
@@ -10,7 +11,7 @@ export default defineConfig(({ mode }) => ({
   root: resolve(projectRoot, 'site'),
   base: mode === 'pages' ? '/ardechoise-vite/' : '/',
   publicDir: resolve(projectRoot, 'site/public'),
-  plugins: [react(), siteApkPreview(projectRoot)],
+  plugins: [react(), siteSecurity(), siteApkPreview(projectRoot)],
   server: { port: 5174, strictPort: true },
   preview: { port: 4174, strictPort: true },
   build: {

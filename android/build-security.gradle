@@ -1,0 +1,58 @@
+// Build-tool dependencies only: application/runtime dependencies are unchanged.
+// AGP 8.13.2 supports Gradle 8.13+, JDK 17+ and the existing Android SDK 35.
+def buildDependencyPins = [
+    'com.android.tools.build:gradle': '8.13.2',
+    // CVE-2024-25710 / CVE-2024-26308; repository/sdklib still request 1.21.
+    'org.apache.commons:commons-compress': '1.26.1',
+    // Compress 1.26.1 requests vulnerable Commons Lang 3.14.0 (CVE-2025-48924).
+    'org.apache.commons:commons-lang3': '3.18.0',
+    // Lint's sdklib still requests HttpClient 4.5.6 (CVE-2020-13956).
+    'org.apache.httpcomponents:httpclient': '4.5.14',
+    // CVE-2024-29371 (compressed JWE) and CVE-2021-33813 (XML entities).
+    'org.bitbucket.b_c:jose4j': '0.9.6',
+    'org.jdom:jdom2': '2.0.6.1',
+    // Keep the certificate/crypto modules on the same patched release.
+    'org.bouncycastle:bcprov-jdk18on': '1.86',
+    'org.bouncycastle:bcpkix-jdk18on': '1.86',
+    'org.bouncycastle:bcutil-jdk18on': '1.86',
+]
+
+// This script is applied to both ScriptHandler and Project configurations.
+// Lint resolves its own tool classpath, separate from the plugin classpath.
+def toolConfigurations = ['classpath', 'lintClassPath', 'lintChecks', 'lintPublish']
+configurations.configureEach { configuration ->
+    if (configuration.name in toolConfigurations) {
+        configuration.resolutionStrategy.eachDependency { dependency ->
+            def requested = dependency.requested
+            def pinned = buildDependencyPins["${requested.group}:${requested.name}".toString()]
+            // Netty 4.1 is aligned without changing netty-tcnative's 2.x versions.
+            if (requested.group == 'io.netty' && requested.version?.startsWith('4.1.')) {
+                pinned = '4.1.137.Final'
+            }
+            if (pinned) {
+                dependency.useVersion(pinned)
+                dependency.because('Use the audited, compatible Android build-tool versions')
+            }
+        }
+    }
+}
+
+// AGP also resolves lint-gradle through a detached configuration, invisible to
+// configurations.configureEach. Constraints on this tool's metadata cover that
+// graph without modifying the application's compile/runtime configurations.
+dependencies.components.withModule('com.android.tools.lint:lint-gradle') {
+    allVariants {
+        withDependencyConstraints {
+            buildDependencyPins.each { module, version ->
+                if (module != 'com.android.tools.build:gradle') {
+                    add("${module}:${version}".toString())
+                }
+            }
+            ['common', 'buffer', 'codec', 'codec-http', 'codec-http2', 'handler',
+             'handler-proxy', 'resolver', 'transport', 'transport-native-unix-common',
+             'transport-classes-epoll', 'transport-native-epoll'].each { module ->
+                add("io.netty:netty-${module}:4.1.137.Final".toString())
+            }
+        }
+    }
+}

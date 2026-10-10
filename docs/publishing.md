@@ -55,9 +55,19 @@ Après les essais de l'APK sur téléphone, la relecture des fichiers et validat
 
 L'environnement de déploiement est `github-pages`. Une règle de branche ou de validation de cet environnement peut compléter le lancement manuel si souhaité. Aucun déclenchement ni réglage GitHub n'a été effectué dans le cadre de la préparation locale.
 
+## Protections de la vitrine et du workflow
+
+Les cinq actions officielles sont épinglées sur des SHA complets vérifiés dans leurs dépôts, avec leur version majeure en commentaire. Pour les mettre à jour, vérifier le nouveau commit dans le dépôt officiel avant de remplacer le SHA. Le token du checkout n'est pas conservé dans la configuration Git ; les permissions de lecture du build et les permissions Pages/OIDC du déploiement restent séparées.
+
+`scripts/site-security.mjs` ajoute une Content Security Policy à chaque HTML traité par la configuration Vite de la vitrine. Les builds, y compris Pages, autorisent les scripts et images du même site, les styles et polices Google utilisés par le design et les requêtes à l'API GitHub. Les scripts/styles inline, `eval`, objets, formulaires et changements de base URL sont bloqués. Le serveur de développement seul autorise les scripts/styles inline nécessaires à React Refresh et Vite, ainsi que ses connexions WebSocket ; ces assouplissements ne sont pas présents dans le build publié. La politique de référent est `no-referrer`.
+
+La CSP est livrée par une balise meta, compatible avec les fichiers statiques GitHub Pages. Elle ne peut pas fournir `frame-ancestors`, `X-Frame-Options` ou `X-Content-Type-Options` : ces protections exigent des headers HTTP contrôlés par l'hébergement. Ne pas ajouter `frame-ancestors` dans une balise meta, où le navigateur l'ignorerait. Une politique HTTP plus complète demanderait un hébergeur ou un proxy permettant de définir ces headers.
+
+Après une modification des ressources externes, vérifier le build Pages et sa console navigateur : aucune violation CSP pour les images, les polices, les styles ou le compteur GitHub. Vérifier aussi `dev:site` et le rechargement HMR, dont les besoins diffèrent de ceux du build statique.
+
 ## Publier une APK testée sur GitHub Releases
 
-**Une APK locale signée est disponible : `releases/ardechoise-android-v1.0.0.apk`.** Elle se télécharge depuis l'aperçu `dev:site`, mais doit encore être installée et essayée sur téléphone avant publication. Aucune APK n'a été envoyée sur GitHub Releases ; les builds et prévisualisations de production conservent donc leur bouton « APK bientôt disponible ». La génération, la signature et les essais sont documentés dans [android.md](android.md).
+Une APK a déjà été publiée dans la Release `V1`. Les builds et prévisualisations de production sélectionnent l'APK stable disponible sur GitHub Releases. La présence d'une publication ne certifie pas les essais sur téléphone ; pour toute nouvelle version, suivre la génération, la signature et les essais documentés dans [android.md](android.md).
 
 Suivre d'abord [la génération, la signature et les essais Android](android.md). Le fichier public doit être **l'APK release signée qui a été testée**.
 
@@ -90,3 +100,5 @@ Pour vérifier après une publication, consulter les assets sur l'API ou les sta
 - [Créer et gérer les Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
 - [API REST des Releases](https://docs.github.com/en/rest/releases/releases)
 - [API des assets et download_count](https://docs.github.com/en/rest/releases/assets)
+- [Épingler les actions sur un SHA et limiter les permissions](https://docs.github.com/en/actions/reference/security/secure-use)
+- [Content Security Policy et limites des balises meta](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy)

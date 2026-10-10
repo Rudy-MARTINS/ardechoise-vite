@@ -6,11 +6,31 @@ Le projet natif `android/` est créé. `capacitor.config.json` définit l'identi
 
 Le build Android contient uniquement le jeu d'origine et ses images/sons locaux, sans `server.url`. Le mini-site indépendant (`site/`, build `dist-site/`) présente l'application et son téléchargement ; il ne doit pas être copié dans Android.
 
+Les joueurs, cartes et scores restent en mémoire pendant la partie ; le jeu ne conserve aucun état à restaurer depuis une sauvegarde Android. La sauvegarde est désactivée dans le manifeste (`allowBackup` et `fullBackupContent` à `false`). Les règles `data_extraction_rules.xml` excluent également les données des sauvegardes cloud et des transferts entre appareils sur Android 12 et versions suivantes, où `allowBackup` seul peut être insuffisant selon le fabricant.
+
+Le `FileProvider` du modèle Capacitor a été supprimé : le jeu n'utilise ni capture de photo, ni sélection ou partage de fichiers. Si une telle fonctionnalité est ajoutée, prévoir un fournisseur avec des chemins limités à un sous-répertoire dédié, sans exposer toute la racine du stockage externe ou du cache.
+
 Capacitor 7 reste compatible avec Node 20.20 utilisé ici. Les paquets `@capacitor/core`, `@capacitor/android` et `@capacitor/cli` doivent rester sur la même version majeure ; `package-lock.json` verrouille les versions installées. Node 22.12+ convient aussi pour une nouvelle installation.
 
-**La première APK locale est compilée et signée : `releases/ardechoise-android-v1.0.0.apk` (environ 12 Mo).** Elle utilise l'icône personnalisée et embarque le jeu, ses images/sons et la police Fredoka. La signature et la correspondance des 11 fichiers du bundle web avec ceux de l'APK ont été vérifiées. Le bundle démarre dans le navigateur avec Google Fonts bloqué et charge sa police locale. Les 21 tests et le lint passent. Aucun essai sur téléphone ni publication n'a encore été réalisé ; installer et essayer cette APK avant sa diffusion.
+**La première APK signée, `releases/ardechoise-android-v1.0.0.apk` (environ 12 Mo), est publiée sous le nom `ardechoise.apk` dans la Release `V1`.** Elle utilise l'icône personnalisée et embarque le jeu, ses images/sons et la police Fredoka. Sa signature et la correspondance des 11 fichiers du bundle web ont été vérifiées. Les corrections de sécurité décrites ci-dessous concernent les prochains builds ; elles ne remplacent pas automatiquement l'APK déjà publiée. Les essais sur téléphone et la validation d'une mise à jour signée restent nécessaires avant toute nouvelle diffusion.
 
 ## Méthode locale Windows sans Android Studio
+
+### Versions des outils de compilation
+
+Le projet utilise **Gradle 8.14.6** et **Android Gradle Plugin 8.13.2**, avec le JDK 21, les Build-Tools 35.0.0 et le SDK 35 existants. Le SDK minimum reste 23 et Capacitor reste en version 7.6.9. AGP 8.13 exige Gradle 8.13+ et Java 17+ ; le wrapper vérifie le SHA-256 officiel de sa distribution.
+
+`android/build-security.gradle` aligne les classpaths de compilation et les configurations Android Lint du projet et des sous-projets Capacitor. Il impose les versions corrigées de Netty, Bouncy Castle, Commons Compress/Lang, jose4j et JDOM. Ces règles concernent les outils de compilation, pas les dépendances d'exécution du jeu. Lors d'une future mise à jour d'AGP, vérifier le graphe réellement résolu, y compris Lint, et les avis de sécurité avant d'adapter ces versions ; ne pas modifier `node_modules`.
+
+Les builds de validation peuvent utiliser `:app:assembleRelease` sans les variables `ARDECHOISE_KEYSTORE_*`, `ARDECHOISE_KEY_ALIAS` et `ARDECHOISE_KEY_PASSWORD` : ils produisent alors une APK **non signée**, sans ouvrir la clé privée. Cette APK sert à valider la compilation et ne doit pas être distribuée. La procédure de signature ci-dessous reste distincte.
+
+### Limites des correctifs de l'outillage
+
+La distribution officielle Gradle 8.14.6 contient encore Commons Lang 2.6, affecté par CVE-2025-48924 : une entrée très longue à `ClassUtils.getClass` peut provoquer un déni de service. Aucun appel à cette méthode n'a été trouvé dans les bibliothèques de cette distribution examinées. Gradle ne remplace pas cette bibliothèque dans la branche 8.14 car le changement de package vers Lang 3 serait incompatible ; ne pas remplacer manuellement des JAR dans la distribution vérifiée.
+
+Certains outils Lint contiennent également des bibliothèques intégrées ou modifiées par Google/Kotlin, dont un fork privé de Protobuf dans le compilateur Kotlin et JLine. Les contraintes Maven ne remplacent pas ces copies. La récursion non bornée observée dans le parseur Protobuf peut présenter un risque de déni de service sur des métadonnées Kotlin malveillantes ; aucune exploitation dans ce projet Java n'a été démontrée. Ces outils ne sont pas embarqués dans le jeu Android. Une migration future de Lint/AGP doit vérifier ces copies, leur utilisation et la compatibilité du build ; un résultat OSV sans avis sur le graphe Maven ne couvre pas à lui seul les bibliothèques intégrées.
+
+Voir [le suivi des dépendances internes Gradle](https://github.com/gradle/gradle/issues/38600). Les variantes Kotlin signalées par certains scanners doivent être vérifiées contre les plages affectées de l'éditeur : aucune CVE applicable à Kotlin stdlib 2.0.21 n'a été confirmée ici.
 
 À la racine du dépôt, installer les dépendances puis les outils portables :
 
@@ -71,7 +91,7 @@ La seule copie du fichier `signing.credential.xml` ne suffit pas pour changer de
 
 ## Alternative avec Android Studio
 
-Installer [Android Studio](https://developer.android.com/studio), version 2024.2.1 ou ultérieure. Dans **Tools → SDK Manager**, installer la plateforme Android 15/API 35, les Build-Tools et Platform-Tools. Sélectionner un JDK 21 dans **Settings → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK**. Un Android Studio plus récent peut proposer un autre JDK : vérifier la version utilisée par Gradle.
+Installer [Android Studio](https://developer.android.com/studio), au minimum **Narwhal 3 Feature Drop (2025.1.3)** ou une version ultérieure compatible avec AGP 8.13. Dans **Tools → SDK Manager**, installer la plateforme Android 15/API 35, les Build-Tools et Platform-Tools. Sélectionner un JDK 21 dans **Settings → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK**. Un Android Studio plus récent peut proposer un autre JDK : vérifier la version utilisée par Gradle.
 
 Depuis la racine du dépôt :
 
@@ -148,5 +168,9 @@ Noter le téléphone, la version Android, la version du jeu, le commit et le SHA
 
 - [Environnement Capacitor 7](https://capacitorjs.com/docs/v7/getting-started/environment-setup)
 - [JDK et SDK de Capacitor 7](https://capacitorjs.com/docs/v7/updating/7-0)
+- [Compatibilité Android Gradle Plugin 8.13](https://developer.android.com/build/releases/agp-8-13-0-release-notes)
+- [Correctifs de Gradle 8.14.6](https://docs.gradle.org/8.14.6/release-notes.html)
 - [Signature des applications Android](https://developer.android.com/studio/publish/app-signing)
+- [Sauvegardes et règles d'extraction Android](https://developer.android.com/identity/data/autobackup)
+- [Limiter les chemins d'un FileProvider](https://developer.android.com/privacy-and-security/risks/file-providers)
 - [Vérification avec apksigner](https://developer.android.com/tools/apksigner)
